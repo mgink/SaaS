@@ -9,13 +9,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from '@/components/ui/label';
-import { Plus, Search, Loader2, Trash2, Lock, Check, X, FileText, User, Filter, AlertTriangle, ShoppingCart, ScanBarcode, Edit2, PackageX } from 'lucide-react';
+import { Plus, Search, Trash2, Lock, Check, X, FileText, User, AlertTriangle, ShoppingCart, ScanBarcode, Edit2, PackageX } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from "@/components/ui/switch";
 import { toast } from 'sonner';
 import BarcodeScanner from '@/components/BarcodeScanner';
 import EmptyState from '@/components/EmptyState';
 import { Skeleton } from '@/components/ui/skeleton';
+// YENİ LOADER
+import { CustomLoader } from '@/components/ui/custom-loader';
 
 export default function ProductsPage() {
     const [products, setProducts] = useState<any[]>([]);
@@ -168,15 +170,21 @@ export default function ProductsPage() {
     };
     const openQuickDialog = (type: any) => { setQuickType(type); setQuickOpen(true); };
     const handleDelete = async (id: string) => { if (!confirm('Silinsin mi?')) return; try { await api.delete(`/products/${id}`); setProducts(products.filter(p => p.id !== id)); toast.success("Silindi."); } catch (e) { toast.error('Hata.'); } };
-    const handleStatusUpdate = async (id: string, status: 'APPROVED' | 'REJECTED') => { let reason = ''; if (status === 'REJECTED') { const input = prompt("Neden?"); if (!input) return; reason = input; } try { await api.patch(`/products/${id}/status`, { status, reason }); fetchData(); toast.success("Güncellendi."); } catch (e) { toast.error("Hata."); } };
+    const handleStatusUpdate = async (id: string, status: 'APPROVED' | 'REJECTED') => { let reason = ''; if (status === 'REJECTED') { const input = prompt("Ret nedeni:"); if (input === null) return; reason = input; } try { await api.patch(`/products/${id}/status`, { status, reason }); fetchData(); toast.success("Güncellendi."); } catch (e) { toast.error("Hata."); } };
 
     return (
         <AppLayout>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <div><h1 className="text-2xl font-bold text-slate-900">Ürün Yönetimi</h1></div>
                 <div className="flex gap-2 flex-wrap items-center">
-                    <div className={`flex items-center space-x-2 border px-3 py-2 rounded-md transition-colors ${showCritical ? 'bg-red-50 border-red-200' : 'bg-white'}`}><Switch id="critical" checked={showCritical} onCheckedChange={setShowCritical} /><Label htmlFor="critical" className={`font-bold cursor-pointer flex items-center gap-1 ${showCritical ? 'text-red-600' : 'text-slate-600'}`}><AlertTriangle size={14} /> Kritik Stok</Label></div>
-                    <Select value={selectedWarehouse} onValueChange={setSelectedWarehouse}><SelectTrigger className="w-[160px] bg-white"><SelectValue placeholder="Depo Filtre" /></SelectTrigger><SelectContent><SelectItem value="ALL">Tüm Depolar</SelectItem>{warehouses.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}</SelectContent></Select>
+                    <div className={`flex items-center space-x-2 border px-3 py-2 rounded-md transition-colors ${showCritical ? 'bg-red-50 border-red-200' : 'bg-white'}`}>
+                        <Switch id="critical" checked={showCritical} onCheckedChange={setShowCritical} />
+                        <Label htmlFor="critical" className={`font-bold cursor-pointer flex items-center gap-1 ${showCritical ? 'text-red-600' : 'text-slate-600'}`}><AlertTriangle size={14} /> Kritik Stok</Label>
+                    </div>
+                    <Select value={selectedWarehouse} onValueChange={setSelectedWarehouse}>
+                        <SelectTrigger className="w-[160px] bg-white"><SelectValue placeholder="Depo Filtre" /></SelectTrigger>
+                        <SelectContent><SelectItem value="ALL">Tüm Depolar</SelectItem>{warehouses.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}</SelectContent>
+                    </Select>
                     <Button variant="outline" onClick={() => setIsScannerOpen(true)}><ScanBarcode className="mr-2 h-4 w-4" /> Tara</Button>
                     {canCreate && <Button onClick={openCreate} className="bg-blue-600 hover:bg-blue-700"><Plus className="mr-2 h-4 w-4" /> Yeni Ürün</Button>}
                 </div>
@@ -189,7 +197,6 @@ export default function ProductsPage() {
                     <TableHeader><TableRow><TableHead>SKU/Barkod</TableHead><TableHead>Ürün</TableHead><TableHead>Ana Tedarikçi</TableHead><TableHead>Stok</TableHead><TableHead>Durum</TableHead><TableHead className="text-right">İşlem</TableHead></TableRow></TableHeader>
                     <TableBody>
                         {loading ? (
-                            // SKELETON LOADING
                             Array.from({ length: 5 }).map((_, index) => (
                                 <TableRow key={index}>
                                     <TableCell><Skeleton className="h-4 w-20" /></TableCell>
@@ -201,7 +208,6 @@ export default function ProductsPage() {
                                 </TableRow>
                             ))
                         ) : filteredProducts.length === 0 ? (
-                            // EMPTY STATE
                             <TableRow>
                                 <TableCell colSpan={7} className="p-0 border-none">
                                     <EmptyState
@@ -222,17 +228,12 @@ export default function ProductsPage() {
                                         {p.suppliers?.find((s: any) => s.isMain)?.supplier.name || (p.suppliers?.[0]?.supplier.name) || '-'}
                                         {p.suppliers?.length > 1 && <span className="text-xs text-slate-400 ml-1">(+{p.suppliers.length - 1})</span>}
                                     </TableCell>
-                                    <TableCell>
-                                        <span className={`font-bold ${p.currentStock <= p.minStock ? 'text-red-600 text-lg flex items-center gap-1' : ''}`}>
-                                            {p.currentStock <= p.minStock && <AlertTriangle size={14} />}
-                                            {p.currentStock}
-                                        </span>
-                                    </TableCell>
-                                    <TableCell>{p.status === 'APPROVED' ? <Badge className="bg-green-100 text-green-700 border-green-200">Onaylı</Badge> : <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">Bekliyor</Badge>}</TableCell>
+                                    <TableCell><span className={`font-bold ${p.currentStock <= p.minStock ? 'text-red-600 text-lg' : ''}`}>{p.currentStock}</span></TableCell>
+                                    <TableCell>{p.status === 'APPROVED' ? <Badge className="bg-green-100 text-green-700">Onaylı</Badge> : <Badge className="bg-yellow-100 text-yellow-800">Bekliyor</Badge>}</TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex justify-end gap-2">
                                             {p.currentStock <= p.minStock && p.status === 'APPROVED' && (
-                                                <Button size="icon" variant="outline" className="h-8 w-8 text-blue-600 border-blue-200 hover:bg-blue-50" onClick={() => { setRequestForm({ ...requestForm, productId: p.id, quantity: 10, reason: 'Kritik Stok Uyarısı' }); setRequestOpen(true); }} title="Talep Oluştur"><ShoppingCart size={14} /></Button>
+                                                <Button size="icon" variant="outline" className="h-8 w-8 text-blue-600 border-blue-200 hover:bg-blue-50" onClick={() => { setRequestForm({ ...requestForm, productId: p.id, quantity: 10, reason: 'Kritik Stok' }); setRequestOpen(true); }} title="Talep Oluştur"><ShoppingCart size={14} /></Button>
                                             )}
                                             {canManage && (<Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-slate-100" onClick={() => openEdit(p)}><Edit2 className="h-4 w-4 text-slate-600" /></Button>)}
                                             {canManage && p.status === 'PENDING' && (<><Button size="icon" className="h-8 w-8 bg-green-100 text-green-700" onClick={() => handleStatusUpdate(p.id, 'APPROVED')}><Check className="h-4 w-4" /></Button><Button size="icon" className="h-8 w-8 bg-red-100 text-red-700" onClick={() => handleStatusUpdate(p.id, 'REJECTED')}><X className="h-4 w-4" /></Button></>)}
@@ -245,26 +246,35 @@ export default function ProductsPage() {
                 </Table>
             </div>
 
-            {/* ... (Dialoglar: Create/Edit, QuickAdd, Request aynı kalacak, kopyala yapıştır yapabilirsin) ... */}
-            {/* (Kod tekrarını önlemek için önceki cevabın en altındaki Dialog kısımlarını buraya eklemelisin) */}
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
                     <DialogHeader><DialogTitle>{isEditMode ? 'Ürünü Düzenle' : 'Yeni Ürün'}</DialogTitle></DialogHeader>
                     <form onSubmit={handleCreate} className="space-y-4 mt-2">
                         <div className="grid grid-cols-2 gap-4"><div className="space-y-2"><Label>Ad</Label><Input required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} /></div><div className="space-y-2"><Label>Barkod</Label><Input value={formData.barcode} onChange={e => setFormData({ ...formData, barcode: e.target.value })} /></div></div>
-                        <div className="bg-slate-50 p-3 rounded border space-y-3"><Label>Tedarikçiler</Label><div className="flex gap-2"><Select onValueChange={addSupplierToList}><SelectTrigger className="bg-white"><SelectValue placeholder="Listeden Seç" /></SelectTrigger><SelectContent>{allSuppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select><div className="flex items-center gap-1"><Input placeholder="Yeni..." className="bg-white" value={newSupplierName} onChange={e => setNewSupplierName(e.target.value)} /><Button type="button" size="sm" variant="secondary" onClick={addNewSupplierToList}><Plus size={16} /></Button></div></div><div className="space-y-2">{selectedSuppliers.map((s, i) => (<div key={i} className="flex items-center justify-between bg-white p-2 rounded border text-sm"><div className="flex items-center gap-2"><div onClick={() => setMainSupplier(s.id)} className={`cursor-pointer w-4 h-4 rounded-full border flex items-center justify-center ${s.isMain ? 'border-blue-600 bg-blue-600' : 'border-slate-300'}`}>{s.isMain && <div className="w-1.5 h-1.5 bg-white rounded-full" />}</div><span className={s.isMain ? 'font-bold text-blue-700' : ''}>{s.name}</span>{s.isMain && <span className="text-[10px] bg-blue-100 text-blue-600 px-1 rounded">ANA</span>}</div><X size={14} className="cursor-pointer text-slate-400 hover:text-red-500" onClick={() => removeSupplier(s.id)} /></div>))}</div></div>
-                        <div className="grid grid-cols-2 gap-4"><div className="space-y-2"><Label>Depo *</Label><Select value={formData.warehouseId} onValueChange={(val) => { if (val === 'NEW') openQuickDialog('WAREHOUSE'); else setFormData({ ...formData, warehouseId: val }) }}><SelectTrigger><SelectValue placeholder="Seç" /></SelectTrigger><SelectContent>{warehouses.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}<SelectItem value="NEW" className="text-blue-600 font-bold border-t">+ Yeni Depo</SelectItem></SelectContent></Select></div><div className="space-y-2"><Label>Departman *</Label><Select value={formData.departmentId} onValueChange={(val) => { if (val === 'NEW') openQuickDialog('DEPARTMENT'); else setFormData({ ...formData, departmentId: val }) }}><SelectTrigger><SelectValue placeholder="Seç" /></SelectTrigger><SelectContent>{departments.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}<SelectItem value="NEW" className="text-blue-600 font-bold border-t">+ Yeni Departman</SelectItem></SelectContent></Select></div></div>
+
+                        <div className="bg-slate-50 p-3 rounded border space-y-3">
+                            <Label>Tedarikçiler</Label>
+                            <div className="flex gap-2"><Select onValueChange={addSupplierToList}><SelectTrigger className="bg-white"><SelectValue placeholder="Listeden Seç" /></SelectTrigger><SelectContent>{allSuppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select><div className="flex items-center gap-1"><Input placeholder="Yeni..." className="bg-white" value={newSupplierName} onChange={e => setNewSupplierName(e.target.value)} /><Button type="button" size="sm" variant="secondary" onClick={addNewSupplierToList}><Plus size={16} /></Button></div></div>
+                            <div className="space-y-2">{selectedSuppliers.map((s, i) => (<div key={i} className="flex items-center justify-between bg-white p-2 rounded border text-sm"><div className="flex items-center gap-2"><div onClick={() => setMainSupplier(s.id)} className={`cursor-pointer w-4 h-4 rounded-full border flex items-center justify-center ${s.isMain ? 'border-blue-600 bg-blue-600' : 'border-slate-300'}`}>{s.isMain && <div className="w-1.5 h-1.5 bg-white rounded-full" />}</div><span className={s.isMain ? 'font-bold text-blue-700' : ''}>{s.name}</span>{s.isMain && <span className="text-[10px] bg-blue-100 text-blue-600 px-1 rounded">ANA</span>}</div><X size={14} className="cursor-pointer text-slate-400 hover:text-red-500" onClick={() => removeSupplier(s.id)} /></div>))}</div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4"><div className="space-y-2"><Label>Depo *</Label><Select value={formData.warehouseId} onValueChange={(val) => { if (val === 'NEW') openQuickDialog('WAREHOUSE'); else setFormData({ ...formData, warehouseId: val }) }}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{warehouses.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}<SelectItem value="NEW" className="text-blue-600 border-t">+ Yeni Depo</SelectItem></SelectContent></Select></div><div className="space-y-2"><Label>Departman *</Label><Select value={formData.departmentId} onValueChange={(val) => { if (val === 'NEW') openQuickDialog('DEPARTMENT'); else setFormData({ ...formData, departmentId: val }) }}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{departments.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}<SelectItem value="NEW" className="text-blue-600 border-t">+ Yeni Departman</SelectItem></SelectContent></Select></div></div>
                         <div className="grid grid-cols-2 gap-4 bg-slate-50 p-3 rounded border"><div className="space-y-2"><Label>Geliş (₺)</Label><Input type="number" required min="0" value={formData.buyingPrice} onChange={(e) => setFormData({ ...formData, buyingPrice: Number(e.target.value) })} /></div><div className="space-y-2"><Label>Satış (₺)</Label><Input type="number" min="0" value={formData.sellingPrice} onChange={(e) => setFormData({ ...formData, sellingPrice: Number(e.target.value) })} /></div></div>
                         <div className="p-3 border rounded bg-slate-50 space-y-3"><div className="flex items-center gap-2"><input type="checkbox" checked={formData.isCash} onChange={(e) => setFormData({ ...formData, isCash: e.target.checked })} className="w-4 h-4" /><Label>Peşin Ödeme</Label></div>{!formData.isCash && (<div className="space-y-2"><Label>Vade Tarihi</Label><Input type="date" value={formData.paymentDate} onChange={(e) => setFormData({ ...formData, paymentDate: e.target.value })} /></div>)}</div>
                         <div className="space-y-2"><Label>Belge (Opsiyonel)</Label><Input type="file" onChange={(e) => setFormData({ ...formData, file: e.target.files?.[0] || null })} /></div>
                         <div className="space-y-2 pt-2 border-t"><Label>Min. Stok Uyarısı</Label><Input type="number" min="0" value={formData.minStock} onChange={(e) => setFormData({ ...formData, minStock: Number(e.target.value) })} /></div>
-                        <Button type="submit" className="w-full bg-slate-900" disabled={saving}>{saving ? <Loader2 className="animate-spin" /> : (isEditMode ? 'Güncelle' : 'Kaydet')}</Button>
+
+                        <Button type="submit" className="w-full bg-slate-900" disabled={saving}>
+                            {saving ? <CustomLoader size="sm" className="mr-2" /> : (isEditMode ? 'Güncelle' : 'Kaydet')}
+                        </Button>
                     </form>
                 </DialogContent>
             </Dialog>
 
-            <Dialog open={requestOpen} onOpenChange={setRequestOpen}><DialogContent><DialogHeader><DialogTitle>Satın Alma Talebi</DialogTitle></DialogHeader><div className="space-y-4"><div className="space-y-2"><Label>Miktar</Label><Input type="number" value={requestForm.quantity} onChange={e => setRequestForm({ ...requestForm, quantity: Number(e.target.value) })} /></div><div className="space-y-2"><Label>Sebep</Label><Input value={requestForm.reason} onChange={e => setRequestForm({ ...requestForm, reason: e.target.value })} /></div><Button onClick={handleRequestCreate} className="w-full bg-slate-900">Gönder</Button></div></DialogContent></Dialog>
             <Dialog open={quickOpen} onOpenChange={setQuickOpen}><DialogContent className="sm:max-w-sm"><DialogHeader><DialogTitle>Hızlı Ekle</DialogTitle></DialogHeader><div className="space-y-4 mt-2"><Input placeholder="İsim giriniz" value={quickName} onChange={e => setQuickName(e.target.value)} /><Button onClick={handleQuickCreate} className="w-full bg-blue-600">Ekle</Button></div></DialogContent></Dialog>
+
+            <Dialog open={requestOpen} onOpenChange={setRequestOpen}><DialogContent><DialogHeader><DialogTitle>Satın Alma Talebi</DialogTitle></DialogHeader><div className="space-y-4"><div className="space-y-2"><Label>Miktar</Label><Input type="number" value={requestForm.quantity} onChange={e => setRequestForm({ ...requestForm, quantity: Number(e.target.value) })} /></div><div className="space-y-2"><Label>Sebep</Label><Input value={requestForm.reason} onChange={e => setRequestForm({ ...requestForm, reason: e.target.value })} /></div><Button onClick={handleRequestCreate} className="w-full bg-slate-900">Gönder</Button></div></DialogContent></Dialog>
+
         </AppLayout>
     );
 }

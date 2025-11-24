@@ -101,14 +101,13 @@ model Branch {
   tenantId    String
   tenant      Tenant   @relation(fields: [tenantId], references: [id])
   
-  warehouses  Warehouse[]
-  users       User[]
-  
-  // Şubeye gelen talepler
-  procurementRequests ProcurementRequest[]
+  warehouses          Warehouse[]
+  users               User[]
+  procurementRequests ProcurementRequest[] // Şubeye gelen talepler
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  deletedAt   DateTime? // Soft Delete
 
   @@unique([tenantId, name])
 }
@@ -146,6 +145,7 @@ model User {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deletedAt DateTime? // Soft Delete
 }
 
 enum Role {
@@ -175,6 +175,7 @@ model Warehouse {
   products    Product[]
   departments Department[]
 
+  deletedAt DateTime? // Soft Delete
   @@unique([tenantId, name])
 }
 
@@ -190,6 +191,7 @@ model Department {
   warehouse   Warehouse? @relation(fields: [warehouseId], references: [id], onDelete: SetNull)
   
   products    Product[]
+  deletedAt   DateTime? // Soft Delete
   @@unique([tenantId, name])
 }
 
@@ -218,6 +220,7 @@ model Supplier {
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  deletedAt   DateTime? // Soft Delete
 
   @@unique([tenantId, name])
 }
@@ -241,8 +244,8 @@ model ProductSupplier {
 model Product {
   id           String   @id @default(uuid())
   name         String
-  sku          String   // İç Stok Kodu
-  barcode      String?  // Barkod (EAN/UPC)
+  sku          String   // İç Stok Kodu (Otomatik Üretilen)
+  barcode      String?  // Barkod (EAN/UPC - Kamerayla okunan)
   description  String?
   
   // Fiyatlar
@@ -253,9 +256,13 @@ model Product {
   minStock     Int      @default(10)
   currentStock Int      @default(0)
   
-  // Birim Yönetimi
+  // Birim Yönetimi (YENİ)
   unitType     String   @default("PIECE") // PIECE, BOX, KG, LT
   itemsPerBox  Int      @default(1)       // Koli içi adet
+
+  // SKT ve Parti Takibi (Opsiyonel - Gelecek özellik için altyapı)
+  batchNumber    String?
+  expirationDate DateTime?
   
   // Konum
   warehouseId  String?
@@ -267,7 +274,7 @@ model Product {
   supplierId   String?
   supplier     Supplier? @relation(fields: [supplierId], references: [id])
   
-  // Alternatif Tedarikçiler
+  // Alternatif Tedarikçiler (Tam Liste)
   suppliers    ProductSupplier[]
 
   // Durum ve Onay
@@ -289,6 +296,7 @@ model Product {
 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  deletedAt    DateTime? // Soft Delete
 
   @@unique([tenantId, sku])
 }
@@ -320,6 +328,10 @@ model Transaction {
   // Finansal Durum (Vadeli Takip İçin)
   isCash      Boolean  @default(true)
   isPaid      Boolean  @default(false)
+
+  // SKT ve Parti Takibi (Bu işlem özelinde)
+  batchNumber    String?
+  expirationDate DateTime?
 
   // İlişkiler
   productId   String
@@ -369,7 +381,7 @@ model ProcurementRequest {
   requesterId  String
   requester    User     @relation("Requester", fields: [requesterId], references: [id])
   
-  // Hangi şubeye ait?
+  // Hangi şubenin talebi?
   branchId     String?
   branch       Branch?  @relation(fields: [branchId], references: [id])
   
@@ -389,9 +401,9 @@ enum ProcurementStatus {
 }
 
 enum RequestType {
-  PURCHASE   // Satın Alma
-  STOCK_OUT  // Depo Düşme
-  INBOUND    // Mal Kabul
+  PURCHASE   // Satın Alma Talebi
+  STOCK_OUT  // Stok Düşme Talebi
+  INBOUND    // Mal Kabul Talebi
 }
 
 // ==========================================
@@ -413,6 +425,6 @@ model Notification {
   user      User     @relation(fields: [userId], references: [id])
   message   String
   read      Boolean  @default(false)
-  type      String   
+  type      String   // INFO, WARNING, SUCCESS, ERROR
   createdAt DateTime @default(now())
 }

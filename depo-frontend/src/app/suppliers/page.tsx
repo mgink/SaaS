@@ -3,25 +3,34 @@
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import AppLayout from '@/components/AppLayout';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Plus, Phone, MapPin, Edit2, Trash2, Truck, User } from 'lucide-react';
+import { Plus, Phone, MapPin, Edit2, Trash2, Truck, User, FileText, History, CheckCircle2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2 } from 'lucide-react';
 
 export default function SuppliersPage() {
     const [suppliers, setSuppliers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+
+    // Ekleme/Düzenleme State'leri
     const [open, setOpen] = useState(false);
     const [isEdit, setIsEdit] = useState(false);
     const [selectedId, setSelectedId] = useState('');
-
     const initialForm = { name: '', contactName: '', phone: '', email: '', address: '', category: '' };
     const [formData, setFormData] = useState(initialForm);
+
+    // DETAY MODALI STATE'LERİ
+    const [detailOpen, setDetailOpen] = useState(false);
+    const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
+    const [detailLoading, setDetailLoading] = useState(false);
 
     const fetchSuppliers = async () => {
         try {
@@ -30,10 +39,22 @@ export default function SuppliersPage() {
         } catch (e) { console.error(e); } finally { setLoading(false); }
     };
 
-    // DÜZELTME: fetchWarehouses kaldırıldı, sadece fetchSuppliers çağrılıyor
-    useEffect(() => {
-        fetchSuppliers();
-    }, []);
+    useEffect(() => { fetchSuppliers(); }, []);
+
+    // DETAYLARI ÇEKME FONKSİYONU
+    const openDetail = async (supplier: any) => {
+        setDetailOpen(true);
+        setDetailLoading(true);
+        try {
+            const res = await api.get(`/suppliers/${supplier.id}`);
+            setSelectedSupplier(res.data);
+        } catch (e) {
+            toast.error("Detaylar yüklenemedi.");
+            setDetailOpen(false);
+        } finally {
+            setDetailLoading(false);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -93,10 +114,10 @@ export default function SuppliersPage() {
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {suppliers.map((s) => (
-                    <Card key={s.id} className="group relative hover:shadow-md transition-shadow bg-white/70 backdrop-blur-sm border border-slate-100">
-                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(s)}><Edit2 size={16} /></Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:bg-red-50" onClick={() => handleDelete(s.id)}><Trash2 size={16} /></Button>
+                    <Card key={s.id} className="group relative hover:shadow-lg transition-shadow bg-white/70 backdrop-blur-sm border border-slate-100 cursor-pointer" onClick={() => openDetail(s)}>
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-10">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 bg-white/80 hover:bg-white shadow-sm" onClick={(e) => { e.stopPropagation(); openEdit(s); }}><Edit2 size={16} /></Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 bg-white/80 text-red-500 hover:bg-red-50 shadow-sm" onClick={(e) => { e.stopPropagation(); handleDelete(s.id); }}><Trash2 size={16} /></Button>
                         </div>
                         <CardContent className="pt-6">
                             <div className="flex items-start justify-between mb-4">
@@ -110,14 +131,92 @@ export default function SuppliersPage() {
                                 {s.phone && <div className="flex items-center gap-2"><Phone size={14} className="text-slate-400" /> {s.phone}</div>}
                                 {s.address && <div className="flex items-center gap-2"><MapPin size={14} className="text-slate-400" /> {s.address}</div>}
                             </div>
-                            <div className="mt-4 pt-4 border-t text-xs text-slate-400 flex justify-between">
-                                <span>{s._count?.transactions || 0} İşlem</span>
-                                <span>Kayıt: {new Date(s.createdAt).toLocaleDateString()}</span>
+                            <div className="mt-4 pt-4 border-t text-xs text-slate-400 flex justify-between items-center">
+                                <span className="flex items-center gap-1"><History size={12} /> {s._count?.transactions || 0} İşlem</span>
+                                <span className="text-blue-600 font-medium">Detaylar &rarr;</span>
                             </div>
                         </CardContent>
                     </Card>
                 ))}
             </div>
+
+            {/* --- TEDARİKÇİ DETAY POPUP --- */}
+            <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+                <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
+                    {detailLoading ? (
+                        <div className="flex items-center justify-center h-48"><Loader2 className="animate-spin text-blue-600 h-8 w-8" /></div>
+                    ) : selectedSupplier ? (
+                        <>
+                            <DialogHeader>
+                                <DialogTitle className="text-2xl flex items-center gap-2"><Truck className="text-blue-600" /> {selectedSupplier.name}</DialogTitle>
+                                <div className="text-sm text-slate-500 flex gap-4 mt-1">
+                                    {selectedSupplier.phone && <span>📞 {selectedSupplier.phone}</span>}
+                                    {selectedSupplier.email && <span>✉️ {selectedSupplier.email}</span>}
+                                </div>
+                            </DialogHeader>
+
+                            <Tabs defaultValue="history" className="w-full mt-4">
+                                <TabsList className="grid w-full grid-cols-2">
+                                    <TabsTrigger value="history">İşlem Geçmişi</TabsTrigger>
+                                    <TabsTrigger value="products">Verdiği Ürünler</TabsTrigger>
+                                </TabsList>
+
+                                {/* SEKME 1: İŞLEM GEÇMİŞİ */}
+                                <TabsContent value="history" className="mt-4">
+                                    <div className="border rounded-lg overflow-hidden">
+                                        <Table>
+                                            <TableHeader className="bg-slate-50"><TableRow><TableHead>Tarih</TableHead><TableHead>Ürün</TableHead><TableHead>Miktar</TableHead><TableHead>Tutar</TableHead><TableHead>Belge</TableHead><TableHead className="text-right">Durum</TableHead></TableRow></TableHeader>
+                                            <TableBody>
+                                                {selectedSupplier.transactions?.length === 0 ? (
+                                                    <TableRow><TableCell colSpan={6} className="text-center h-24 text-slate-500">Bu tedarikçiyle henüz işlem yapılmamış.</TableCell></TableRow>
+                                                ) : (
+                                                    selectedSupplier.transactions?.map((tx: any) => (
+                                                        <TableRow key={tx.id}>
+                                                            <TableCell className="text-xs font-mono">{new Date(tx.createdAt).toLocaleDateString('tr-TR')}</TableCell>
+                                                            <TableCell className="font-medium">{tx.product?.name}</TableCell>
+                                                            <TableCell>{tx.quantity}</TableCell>
+                                                            <TableCell>{(tx.quantity * (tx.product?.buyingPrice || 0)).toLocaleString()} ₺</TableCell>
+                                                            <TableCell><span className="text-xs text-slate-500">{tx.waybillNo || '-'}</span></TableCell>
+                                                            <TableCell className="text-right">
+                                                                {tx.isCash ? (
+                                                                    <Badge className="bg-green-100 text-green-700 border-green-200 hover:bg-green-100">Peşin</Badge>
+                                                                ) : tx.isPaid ? (
+                                                                    <Badge className="bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-100 flex w-fit ml-auto items-center gap-1"><CheckCircle2 size={10} /> Ödendi</Badge>
+                                                                ) : (
+                                                                    <Badge className="bg-red-100 text-red-700 border-red-200 hover:bg-red-100 flex w-fit ml-auto items-center gap-1"><XCircle size={10} /> Vadeli</Badge>
+                                                                )}
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))
+                                                )}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                </TabsContent>
+
+                                {/* SEKME 2: ÜRÜNLER */}
+                                <TabsContent value="products" className="mt-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {selectedSupplier.products?.map((p: any) => (
+                                            <div key={p.id} className="border p-3 rounded-lg flex justify-between items-center">
+                                                <div>
+                                                    <div className="font-medium">{p.name}</div>
+                                                    <div className="text-xs text-slate-500">{p.sku}</div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className="font-bold text-green-600">{p.buyingPrice} ₺</div>
+                                                    <div className="text-xs text-slate-400">Alış</div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {selectedSupplier.products?.length === 0 && <div className="col-span-2 text-center text-slate-500 py-8">Tanımlı ürün yok.</div>}
+                                    </div>
+                                </TabsContent>
+                            </Tabs>
+                        </>
+                    ) : null}
+                </DialogContent>
+            </Dialog>
         </AppLayout>
     );
 }

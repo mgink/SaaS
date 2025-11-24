@@ -23,9 +23,26 @@ export class SuppliersService {
     return this.prisma.supplier.findMany({
       where: { tenantId },
       include: {
-        _count: { select: { transactions: true } } // Kaç işlem yapılmış?
+        _count: { select: { transactions: true } }
       },
       orderBy: { name: 'asc' }
+    });
+  }
+
+  // YENİ: Tekil Tedarikçi Detayı ve Geçmişi
+  async findOne(id: string, tenantId: string) {
+    return this.prisma.supplier.findFirst({
+      where: { id, tenantId },
+      include: {
+        // Geçmiş işlemleri getir (En yeniden eskiye)
+        transactions: {
+          where: { type: 'INBOUND' }, // Sadece mal alımlarını göster
+          include: { product: true },
+          orderBy: { createdAt: 'desc' }
+        },
+        // Hangi ürünleri sağlıyor?
+        products: true
+      }
     });
   }
 
@@ -45,10 +62,9 @@ export class SuppliersService {
   }
 
   async remove(id: string, tenantId: string) {
-    // İşlem geçmişi varsa silme, pasife al (Veri bütünlüğü için)
     const count = await this.prisma.transaction.count({ where: { supplierId: id } });
     if (count > 0) {
-      throw new Error("Bu tedarikçi ile geçmiş işlemler var, silinemez. Pasife alabilirsiniz.");
+      throw new Error("Bu tedarikçi ile geçmiş işlemler var, silinemez.");
     }
     return this.prisma.supplier.deleteMany({ where: { id, tenantId } });
   }

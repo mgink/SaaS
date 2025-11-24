@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { SearchCommand } from './SearchCommand';
-import { Loader2 } from 'lucide-react';
+import { CustomLoader } from '@/components/ui/custom-loader'; // <--- YENİ
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
     const router = useRouter();
@@ -26,32 +26,26 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
     if (loading) {
         return (
-            <div className="flex h-screen w-full items-center justify-center bg-background">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div className="flex h-screen w-full items-center justify-center bg-slate-50/50">
+                <CustomLoader size="xl" /> {/* <--- YENİ */}
             </div>
         );
     }
 
     return (
-        // Zemin rengi tekrar sabit light mode tonuna çekildi
         <div className="min-h-screen w-full bg-slate-100/80">
 
             <SearchCommand />
 
-            {/* SIDEBAR (Sabit) */}
             <Sidebar userRole={user?.role} />
 
-            {/* ANA İÇERİK ALANI */}
             <div className="flex flex-col transition-all duration-300 ease-in-out md:pl-64 lg:pl-72">
-
                 <Header user={user} />
-
                 <main className="flex-1 p-4 lg:p-8">
                     <div className="mx-auto w-full max-w-7xl space-y-6">
                         {children}
                     </div>
                 </main>
-
             </div>
         </div>
     );

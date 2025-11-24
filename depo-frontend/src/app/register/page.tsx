@@ -10,9 +10,11 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Building2, Loader2, Check, Crown, CheckCircle2, Mail } from 'lucide-react';
+import { Building2, Check, Crown, CheckCircle2, Mail } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from "sonner";
+// YENİ LOADER
+import { CustomLoader } from '@/components/ui/custom-loader';
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -21,10 +23,7 @@ export default function RegisterPage() {
     const [isPlanOpen, setIsPlanOpen] = useState(false);
     const [selectedPlan, setSelectedPlan] = useState<any>(null);
 
-    // Normal Kayıt Formu
     const [formData, setFormData] = useState({ companyName: '', subdomain: '', email: '', password: '', planCode: '' });
-
-    // Teklif Formu (Yeni)
     const [contactForm, setContactForm] = useState({ companyName: '', fullName: '', email: '', phone: '', message: '' });
 
     useEffect(() => {
@@ -41,11 +40,10 @@ export default function RegisterPage() {
         setIsPlanOpen(false);
     };
 
-    // NORMAL KAYIT
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedPlan) { toast.warning("Lütfen bir paket seçiniz."); setIsPlanOpen(true); return; }
-        if (selectedPlan.code === 'ENTERPRISE') return; // Enterprise için bu form kullanılmaz
+        if (selectedPlan.code === 'ENTERPRISE') return;
 
         if (selectedPlan.price > 0) {
             localStorage.setItem('temp_register_data', JSON.stringify(formData));
@@ -61,7 +59,6 @@ export default function RegisterPage() {
         } catch (error: any) { toast.error(error.response?.data?.message || 'Kayıt başarısız.'); } finally { setLoading(false); }
     };
 
-    // TEKLİF GÖNDER
     const handleContactSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -72,7 +69,6 @@ export default function RegisterPage() {
         } catch (e) { toast.error("Talep gönderilemedi."); } finally { setLoading(false); }
     }
 
-    // Seçilen paket Enterprise ise bambaşka bir form göster
     const isEnterprise = selectedPlan?.code === 'ENTERPRISE';
 
     return (
@@ -85,7 +81,6 @@ export default function RegisterPage() {
                 </CardHeader>
 
                 <CardContent>
-                    {/* PAKET SEÇİM BUTONU */}
                     <div className="mb-6">
                         <Label className="mb-2 block">Seçilen Paket</Label>
                         <Dialog open={isPlanOpen} onOpenChange={setIsPlanOpen}>
@@ -124,7 +119,6 @@ export default function RegisterPage() {
                     </div>
 
                     {isEnterprise ? (
-                        // ENTERPRISE FORMU (TEKLİF)
                         <form onSubmit={handleContactSubmit} className="space-y-4">
                             <div className="space-y-2"><Label>Şirket Adı</Label><Input required placeholder="Holding A.Ş." value={contactForm.companyName} onChange={(e) => setContactForm({ ...contactForm, companyName: e.target.value })} /></div>
                             <div className="space-y-2"><Label>Yetkili Ad Soyad</Label><Input required value={contactForm.fullName} onChange={(e) => setContactForm({ ...contactForm, fullName: e.target.value })} /></div>
@@ -133,16 +127,21 @@ export default function RegisterPage() {
                                 <div className="space-y-2"><Label>Telefon</Label><Input type="tel" required placeholder="05XX..." value={contactForm.phone} onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })} /></div>
                             </div>
                             <div className="space-y-2"><Label>Mesaj / İhtiyaçlar</Label><Textarea placeholder="Kaç kullanıcınız var? Özel istekleriniz neler?" value={contactForm.message} onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })} /></div>
-                            <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 h-11" disabled={loading}>{loading ? <Loader2 className="animate-spin mr-2" /> : 'Teklif İste'}</Button>
+                            <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 h-11" disabled={loading}>
+                                {loading ? <CustomLoader size="sm" className="mr-2" /> : 'Teklif İste'}
+                            </Button>
                         </form>
                     ) : (
-                        // NORMAL KAYIT FORMU
                         <form onSubmit={handleRegister} className="space-y-4">
                             <div className="space-y-2"><Label>Şirket Adı</Label><Input required placeholder="Örn: Teknoloji A.Ş." value={formData.companyName} onChange={(e) => setFormData({ ...formData, companyName: e.target.value })} /></div>
                             <div className="space-y-2"><Label>Firma Kodu</Label><Input required placeholder="teknoloji" value={formData.subdomain} onChange={(e) => setFormData({ ...formData, subdomain: e.target.value.toLowerCase() })} /></div>
                             <div className="space-y-2"><Label>E-posta</Label><Input type="email" required placeholder="admin@sirket.com" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} /></div>
                             <div className="space-y-2"><Label>Şifre</Label><Input type="password" required value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} /></div>
-                            <div className="pt-2"><Button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 h-11 text-base" disabled={loading}>{loading ? <Loader2 className="animate-spin mr-2" /> : (selectedPlan?.price > 0 ? 'Ödemeye Geç' : 'Hesabı Oluştur')}</Button></div>
+                            <div className="pt-2">
+                                <Button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 h-11 text-base" disabled={loading}>
+                                    {loading ? <CustomLoader size="sm" className="mr-2" /> : (selectedPlan?.price > 0 ? 'Ödemeye Geç' : 'Hesabı Oluştur')}
+                                </Button>
+                            </div>
                         </form>
                     )}
                 </CardContent>

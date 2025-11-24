@@ -17,6 +17,12 @@ export class SuppliersController {
     return this.suppliersService.findAll(req.user.tenantId);
   }
 
+  // YENİ: Detay Getirme
+  @Get(':id')
+  findOne(@Param('id') id: string, @Request() req) {
+    return this.suppliersService.findOne(id, req.user.tenantId);
+  }
+
   @Patch(':id')
   update(@Param('id') id: string, @Body() body: any, @Request() req) {
     return this.suppliersService.update(id, body, req.user.tenantId);
@@ -30,4 +36,4 @@ export class SuppliersController {
       throw new BadRequestException(error.message);
     }
   }
-} 
+}

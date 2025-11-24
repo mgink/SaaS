@@ -23,19 +23,33 @@ export class ProductsService {
       }
     });
 
-    if (!tenant || !tenant.plan) {
+    // --- DÜZELTME BAŞLANGICI (Null Kontrolü) ---
+    if (!tenant) {
+      throw new BadRequestException("Şirket bilgisi bulunamadı.");
+    }
+    if (!tenant.plan) {
       throw new BadRequestException("Abonelik planı bulunamadı.");
     }
+    // --- DÜZELTME BİTİŞİ ---
 
+    // Artık TypeScript tenant.plan'ın var olduğundan emin
     if (tenant.plan.maxProducts > 0 && tenant._count.products >= tenant.plan.maxProducts) {
-      throw new BadRequestException(`Ürün limitiniz (${tenant.plan.maxProducts}) doldu.`);
+      throw new BadRequestException(`Ürün limitiniz (${tenant.plan.maxProducts}) doldu. Lütfen paketinizi yükseltin.`);
     }
 
-    // 2. Depo Kontrolü
+    // 2. Barkod Benzersizlik Kontrolü
+    if (data.barcode) {
+      const existing = await this.prisma.product.findFirst({
+        where: { tenantId: user.tenantId, barcode: data.barcode }
+      });
+      if (existing) throw new BadRequestException(`Bu barkod (${data.barcode}) zaten kullanımda.`);
+    }
+
+    // 3. Depo ve Departman Kontrolü
     const warehouse = await this.prisma.warehouse.findUnique({ where: { id: data.warehouseId } });
     const department = await this.prisma.department.findUnique({ where: { id: data.departmentId } });
 
-    if (!warehouse || !department) throw new BadRequestException('Geçersiz Depo veya Departman.');
+    if (!warehouse || !department) throw new BadRequestException('Geçersiz Depo veya Departman seçimi.');
 
     const clean = (text: string) => text.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().substring(0, 3);
     const randomSuffix = Date.now().toString().slice(-4);
@@ -61,7 +75,7 @@ export class ProductsService {
           createdById: user.userId,
           warehouseId: data.warehouseId,
           departmentId: data.departmentId,
-          supplierId: data.supplierId || null, // Varsayılan
+          supplierId: data.supplierId || null,
 
           minStock: Number(data.minStock),
           currentStock: data.currentStock ? Number(data.currentStock) : 0,
@@ -73,10 +87,13 @@ export class ProductsService {
           paymentDate: data.paymentDate ? new Date(data.paymentDate) : null,
           documentUrl: fileName,
           status: status,
+          // Yeni alanlar
+          batchNumber: data.batchNumber || null,
+          expirationDate: data.expirationDate ? new Date(data.expirationDate) : null,
         },
       });
 
-      // Çoklu Tedarikçi İlişkisi
+      // Alternatif Tedarikçiler
       if (suppliersList.length > 0) {
         for (const sup of suppliersList) {
           let supId = sup.id;
@@ -95,7 +112,7 @@ export class ProductsService {
     });
 
     if (status === 'PENDING') {
-      await this.notificationService.notifyAdmins(user.tenantId, `📢 YENİ ÜRÜN: ${data.name} onay bekliyor.`);
+      await this.notificationService.notifyAdmins(user.tenantId, `📢 YENİ ÜRÜN: ${user.fullName}, "${data.name}" ürününü ekledi. Onay bekleniyor.`);
     }
 
     return product;
@@ -113,20 +130,21 @@ export class ProductsService {
       departmentId: data.departmentId,
       unitType: data.unitType,
       itemsPerBox: Number(data.itemsPerBox),
+      batchNumber: data.batchNumber || null,
+      expirationDate: data.expirationDate ? new Date(data.expirationDate) : null,
       isCash: data.isCash === 'true' || data.isCash === true,
       paymentDate: data.paymentDate ? new Date(data.paymentDate) : null,
       supplierId: data.supplierId || null
     };
+
     if (file) updateData.documentUrl = file.filename;
 
-    // Tedarikçi Listesi
     let suppliersList: any[] = [];
     if (data.suppliers) { try { suppliersList = JSON.parse(data.suppliers); } catch (e) { suppliersList = []; } }
 
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.product.update({ where: { id }, data: updateData });
 
-      // Eski ilişkileri temizle ve yenilerini ekle
       if (suppliersList.length > 0) {
         await tx.productSupplier.deleteMany({ where: { productId: id } });
         for (const sup of suppliersList) {
@@ -146,6 +164,7 @@ export class ProductsService {
     });
   }
 
+  // --- LİSTELEME ---
   async findAll(tenantId: string) {
     return this.prisma.product.findMany({
       where: { tenantId },
@@ -177,6 +196,7 @@ export class ProductsService {
     return product;
   }
 
+  // --- EXCEL ---
   async exportToExcel(tenantId: string) {
     const products = await this.prisma.product.findMany({
       where: { tenantId },
@@ -188,7 +208,7 @@ export class ProductsService {
       { header: 'Barkod', key: 'barcode', width: 15 }, { header: 'SKU', key: 'sku', width: 20 }, { header: 'Ad', key: 'name', width: 30 },
       { header: 'Stok', key: 'stock', width: 10 }, { header: 'Tedarikçi', key: 'supplier', width: 20 }, { header: 'Depo', key: 'warehouse', width: 20 }
     ];
-    products.forEach(p => {
+    products.forEach((p: any) => {
       sheet.addRow({ barcode: p.barcode || '-', name: p.name, stock: p.currentStock, supplier: p.supplier?.name || '-', warehouse: p.warehouse?.name || '-' });
     });
     const buffer = await workbook.xlsx.writeBuffer();

@@ -6,16 +6,25 @@ const prisma = new PrismaClient();
 async function main() {
     console.log('🌱 Seeding işlemi başladı...');
 
-    // 1. Temizlik (Sıra Önemli: Child -> Parent)
+    // 1. TEMİZLİK (Sıra Çok Önemli: Child -> Parent)
+    // En uçtaki verilerden başlayarak silmeliyiz.
+
     await prisma.notification.deleteMany();
-    await prisma.transaction.deleteMany();
-    await prisma.product.deleteMany();
-    await prisma.warehouse.deleteMany();
-    await prisma.department.deleteMany();
+    await prisma.transaction.deleteMany();       // Hareketler (Ürüne bağlı)
+    await prisma.procurementRequest.deleteMany(); // <--- EKLENDİ: Talepler (Ürüne bağlı)
+    await prisma.productSupplier.deleteMany();    // <--- EKLENDİ: Ürün-Tedarikçi bağı
+
+    await prisma.product.deleteMany();            // Ürünler (Artık silinebilir)
+
+    await prisma.department.deleteMany();         // Departmanlar
+    await prisma.warehouse.deleteMany();          // Depolar
+    await prisma.supplier.deleteMany();           // Tedarikçiler
+
     await prisma.enterpriseRequest.deleteMany();
-    await prisma.user.deleteMany();
-    await prisma.tenant.deleteMany();
-    await prisma.subscriptionPlan.deleteMany();
+    await prisma.user.deleteMany();               // Kullanıcılar
+    await prisma.branch.deleteMany();             // Şubeler
+    await prisma.tenant.deleteMany();             // Şirketler
+    await prisma.subscriptionPlan.deleteMany();   // Paketler
 
     console.log('🧹 Eski veriler temizlendi.');
 
@@ -23,12 +32,13 @@ async function main() {
     const plans = [
         {
             code: 'FREE',
-            name: 'Ücretsiz Başlangıç',
+            name: 'Başlangıç',
             price: 0,
             maxUsers: 1,
             maxProducts: 50,
             maxWarehouses: 1,
-            features: ['1 Kullanıcı', '50 Ürün Limiti', 'Tek Depo', 'Topluluk Desteği'],
+            maxBranches: 1,
+            features: ['Tek Şube', '50 Ürün Limiti', 'Temel Raporlar'],
             isPopular: false,
             order: 1,
             isActive: true
@@ -40,7 +50,8 @@ async function main() {
             maxUsers: 3,
             maxProducts: 500,
             maxWarehouses: 2,
-            features: ['3 Kullanıcı', '500 Ürün', '2 Şube/Depo', 'E-posta Desteği'],
+            maxBranches: 1,
+            features: ['3 Kullanıcı', '500 Ürün', '2 Depo', 'E-posta Desteği'],
             isPopular: false,
             order: 2,
             isActive: true
@@ -52,7 +63,8 @@ async function main() {
             maxUsers: 10,
             maxProducts: 5000,
             maxWarehouses: 5,
-            features: ['10 Kullanıcı', '5.000 Ürün', 'Excel Raporlama', 'Öncelikli Destek', 'Dosya Yükleme'],
+            maxBranches: 3,
+            features: ['10 Kullanıcı', '5.000 Ürün', 'Çoklu Şube', 'Excel Raporlama', 'Öncelikli Destek'],
             isPopular: true,
             order: 3,
             isActive: true
@@ -64,7 +76,8 @@ async function main() {
             maxUsers: 25,
             maxProducts: 50000,
             maxWarehouses: 20,
-            features: ['25 Kullanıcı', '50.000 Ürün', 'API Erişimi', '7/24 Canlı Destek', 'Gelişmiş Loglar'],
+            maxBranches: 10,
+            features: ['25 Kullanıcı', '50.000 Ürün', '10 Şube', 'API Erişimi', '7/24 Canlı Destek', 'Gelişmiş Loglar'],
             isPopular: false,
             order: 4,
             isActive: true
@@ -76,7 +89,8 @@ async function main() {
             maxUsers: 0,
             maxProducts: 0,
             maxWarehouses: 0,
-            features: ['Sınırsız Kullanıcı', 'Sınırsız Ürün', 'Özel Sunucu', 'Dedike Müşteri Temsilcisi', 'SLA Anlaşması'],
+            maxBranches: 0,
+            features: ['Sınırsız Kullanıcı', 'Sınırsız Ürün', 'Sınırsız Şube', 'Özel Sunucu', 'Dedike Müşteri Temsilcisi', 'SLA Anlaşması'],
             isPopular: false,
             order: 5,
             isActive: true
@@ -89,25 +103,35 @@ async function main() {
     console.log('✅ Paketler oluşturuldu.');
 
     // 3. SUPER ADMIN ŞİRKETİ VE KULLANICISI
-
-    // Şifre: 123456
     const hashedPassword = await bcrypt.hash('123456', 10);
 
     const founderTenant = await prisma.tenant.create({
         data: {
             name: 'SaaS Founder HQ',
             subdomain: 'founder',
-            // Enterprise paketine bağlayalım
             plan: { connect: { code: 'ENTERPRISE' } },
             isActive: true,
-            users: {
-                create: {
-                    email: 'saas@founder.com',
-                    password: hashedPassword,
-                    fullName: 'SaaS Patronu',
-                    role: 'SUPER_ADMIN'
-                }
-            }
+        }
+    });
+
+    // Merkez Şube Oluştur (Super Admin için)
+    const founderBranch = await prisma.branch.create({
+        data: {
+            name: 'HQ Center',
+            tenantId: founderTenant.id
+        }
+    });
+
+    // Kullanıcıyı Oluştur
+    await prisma.user.create({
+        data: {
+            email: 'saas@founder.com',
+            password: hashedPassword,
+            fullName: 'SaaS Patronu',
+            role: 'SUPER_ADMIN',
+            tenantId: founderTenant.id,
+            branchId: founderBranch.id,
+            isPasswordChanged: true
         }
     });
 

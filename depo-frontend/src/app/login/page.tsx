@@ -8,8 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { ShieldCheck, Loader2, ArrowLeft } from 'lucide-react';
+import { ShieldCheck, ArrowLeft } from 'lucide-react';
 import { toast } from "sonner";
+// YENİ LOADER IMPORT
+import { CustomLoader } from '@/components/ui/custom-loader';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -24,15 +26,11 @@ export default function LoginPage() {
         try {
             const response = await api.post('/auth/login', { email, password });
 
-            // Token ve Kullanıcıyı Kaydet
             localStorage.setItem('token', response.data.access_token);
             localStorage.setItem('user', JSON.stringify(response.data.user));
 
             const user = response.data.user;
 
-            // 1. GÜVENLİK KONTROLÜ: Şifre değişmiş mi?
-            // Eğer kullanıcı yönetici tarafından oluşturulduysa (isPasswordChanged = false),
-            // Zorla şifre değiştirme sayfasına gönder.
             if (user.isPasswordChanged === false) {
                 toast.warning("Güvenliğiniz için lütfen yeni şifrenizi belirleyin.");
                 router.push('/change-password');
@@ -77,7 +75,7 @@ export default function LoginPage() {
                         </div>
 
                         <Button type="submit" className="w-full bg-slate-900 hover:bg-slate-800" disabled={loading}>
-                            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Giriş Yap'}
+                            {loading ? <CustomLoader size="sm" className="mr-2" /> : 'Giriş Yap'}
                         </Button>
                     </form>
                 </CardContent>
