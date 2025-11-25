@@ -101,9 +101,11 @@ model Branch {
   tenantId    String
   tenant      Tenant   @relation(fields: [tenantId], references: [id])
   
-  warehouses          Warehouse[]
-  users               User[]
-  procurementRequests ProcurementRequest[] // Şubeye gelen talepler
+  warehouses  Warehouse[]
+  users       User[]
+  
+  // Şubeye gelen talepler
+  procurementRequests ProcurementRequest[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -256,11 +258,11 @@ model Product {
   minStock     Int      @default(10)
   currentStock Int      @default(0)
   
-  // Birim Yönetimi (YENİ)
+  // Birim Yönetimi
   unitType     String   @default("PIECE") // PIECE, BOX, KG, LT
   itemsPerBox  Int      @default(1)       // Koli içi adet
-
-  // SKT ve Parti Takibi (Opsiyonel - Gelecek özellik için altyapı)
+  
+  // SKT ve Parti Takibi
   batchNumber    String?
   expirationDate DateTime?
   
@@ -270,7 +272,7 @@ model Product {
   departmentId String?
   department   Department? @relation(fields: [departmentId], references: [id])
   
-  // Varsayılan Tedarikçi (Hızlı Erişim)
+  // Varsayılan Tedarikçi (Hızlı Erişim İçin)
   supplierId   String?
   supplier     Supplier? @relation(fields: [supplierId], references: [id])
   
@@ -350,11 +352,13 @@ model Transaction {
   approvedBy   User?    @relation("ApprovedBy", fields: [approvedById], references: [id])
 
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt // Otomatik güncelleme
 }
 
 enum TransactionType {
   INBOUND
   OUTBOUND
+  WASTAGE   // Zayi / Fire
 }
 
 enum Status {
@@ -401,9 +405,9 @@ enum ProcurementStatus {
 }
 
 enum RequestType {
-  PURCHASE   // Satın Alma Talebi
-  STOCK_OUT  // Stok Düşme Talebi
-  INBOUND    // Mal Kabul Talebi
+  PURCHASE   // Satın Alma
+  STOCK_OUT  // Stok Düşme
+  INBOUND    // Mal Kabul
 }
 
 // ==========================================

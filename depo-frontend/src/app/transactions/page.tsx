@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { ArrowUpRight, ArrowDownRight, Plus, Loader2, FileText, ScanBarcode, Truck, User, Calendar, ClipboardList } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Plus, Loader2, FileText, ScanBarcode, Truck, User, Calendar, ClipboardList, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import BarcodeScanner from '@/components/BarcodeScanner';
 import EmptyState from '@/components/EmptyState';
@@ -26,16 +26,15 @@ export default function TransactionsPage() {
     const [suppliers, setSuppliers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
-    // Varsayılan olarak "Bu Ay" seçili gelsin
     const [dateRange, setDateRange] = useState(getQuickDateRange('THIS_MONTH'));
-
     const [open, setOpen] = useState(false);
     const [saving, setSaving] = useState(false);
     const [isScannerOpen, setIsScannerOpen] = useState(false);
 
     const [formData, setFormData] = useState({
         productId: '', type: 'INBOUND', quantity: 1, unit: 'PIECE',
-        waybillNo: '', supplierId: '', notes: ''
+        waybillNo: '', supplierId: '', notes: '',
+        batchNumber: '', expirationDate: ''
     });
 
     const fetchData = async () => {
@@ -74,16 +73,19 @@ export default function TransactionsPage() {
 
         setSaving(true);
         try {
-            await api.post('/transactions', {
+            const res = await api.post('/transactions', {
                 ...formData,
                 quantity: Number(formData.quantity),
                 supplierId: formData.type === 'INBOUND' ? formData.supplierId : null
             });
 
             setOpen(false);
-            setFormData({ productId: '', type: 'INBOUND', quantity: 1, unit: 'PIECE', waybillNo: '', supplierId: '', notes: '' });
+            setFormData({ productId: '', type: 'INBOUND', quantity: 1, unit: 'PIECE', waybillNo: '', supplierId: '', notes: '', batchNumber: '', expirationDate: '' });
             fetchData();
-            toast.success("İşlem başarıyla kaydedildi.");
+
+            if (res.data.isRequest) toast.info("Yetkiniz olmadığı için TALEP olarak oluşturuldu.");
+            else toast.success("İşlem başarıyla kaydedildi.");
+
         } catch (e: any) {
             toast.error(e.response?.data?.message || 'Hata oluştu.');
         } finally {
@@ -115,22 +117,11 @@ export default function TransactionsPage() {
                 </div>
 
                 <div className="flex gap-2 items-center flex-wrap">
-                    {/* Tarih Filtreleri */}
                     <div className="flex items-center gap-2 bg-white/70 backdrop-blur-md border p-1 rounded-lg shadow-sm">
                         <Calendar size={16} className="text-slate-400 ml-2" />
-                        <Input
-                            type="date"
-                            className="h-8 w-32 border-none bg-transparent focus-visible:ring-0 px-1 text-xs"
-                            value={dateRange.start}
-                            onChange={e => setDateRange({ ...dateRange, start: e.target.value })}
-                        />
+                        <Input type="date" className="h-8 w-32 border-none bg-transparent text-xs" value={dateRange.start} onChange={e => setDateRange({ ...dateRange, start: e.target.value })} />
                         <span className="text-slate-300">-</span>
-                        <Input
-                            type="date"
-                            className="h-8 w-32 border-none bg-transparent focus-visible:ring-0 px-1 text-xs"
-                            value={dateRange.end}
-                            onChange={e => setDateRange({ ...dateRange, end: e.target.value })}
-                        />
+                        <Input type="date" className="h-8 w-32 border-none bg-transparent text-xs" value={dateRange.end} onChange={e => setDateRange({ ...dateRange, end: e.target.value })} />
                     </div>
 
                     <Button variant="outline" onClick={() => setIsScannerOpen(true)} className="bg-white/70">
@@ -143,33 +134,20 @@ export default function TransactionsPage() {
                                 <Plus className="mr-2 h-4 w-4" /> Yeni İşlem
                             </Button>
                         </DialogTrigger>
-                        <DialogContent className="sm:max-w-[500px]">
+                        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
                             <DialogHeader>
                                 <DialogTitle>Stok Hareketi</DialogTitle>
                             </DialogHeader>
                             <form onSubmit={handleSave} className="space-y-4 mt-4">
-                                {/* Giriş / Çıkış Seçimi */}
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div
-                                        onClick={() => setFormData({ ...formData, type: 'INBOUND' })}
-                                        className={`p-4 border rounded-lg cursor-pointer text-center transition-all ${formData.type === 'INBOUND' ? 'bg-green-50 border-green-500 text-green-700 ring-1 ring-green-500' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'}`}
-                                    >
-                                        <ArrowDownRight className="mx-auto mb-2 h-6 w-6" /> Mal Kabul (Giriş)
-                                    </div>
-                                    <div
-                                        onClick={() => setFormData({ ...formData, type: 'OUTBOUND' })}
-                                        className={`p-4 border rounded-lg cursor-pointer text-center transition-all ${formData.type === 'OUTBOUND' ? 'bg-red-50 border-red-500 text-red-700 ring-1 ring-red-500' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'}`}
-                                    >
-                                        <ArrowUpRight className="mx-auto mb-2 h-6 w-6" /> Sevkiyat (Çıkış)
-                                    </div>
+                                <div className="grid grid-cols-3 gap-2">
+                                    <div onClick={() => setFormData({ ...formData, type: 'INBOUND' })} className={`p-3 border rounded cursor-pointer text-center text-xs font-bold ${formData.type === 'INBOUND' ? 'bg-green-50 border-green-500 text-green-700 ring-1 ring-green-500' : 'bg-white border-slate-200 text-slate-500'}`}><ArrowDownRight className="mx-auto mb-1" /> Giriş</div>
+                                    <div onClick={() => setFormData({ ...formData, type: 'OUTBOUND' })} className={`p-3 border rounded cursor-pointer text-center text-xs font-bold ${formData.type === 'OUTBOUND' ? 'bg-blue-50 border-blue-500 text-blue-700 ring-1 ring-blue-500' : 'bg-white border-slate-200 text-slate-500'}`}><ArrowUpRight className="mx-auto mb-1" /> Çıkış</div>
+                                    <div onClick={() => setFormData({ ...formData, type: 'WASTAGE' })} className={`p-3 border rounded cursor-pointer text-center text-xs font-bold ${formData.type === 'WASTAGE' ? 'bg-red-50 border-red-500 text-red-700 ring-1 ring-red-500' : 'bg-white border-slate-200 text-slate-500'}`}><AlertTriangle className="mx-auto mb-1" /> Zayi/Fire</div>
                                 </div>
 
                                 <div className="space-y-2">
                                     <Label>Ürün</Label>
-                                    <Select
-                                        onValueChange={(val) => { if (val === 'NEW') router.push('/products'); else setFormData({ ...formData, productId: val }) }}
-                                        value={formData.productId}
-                                    >
+                                    <Select onValueChange={(val) => { if (val === 'NEW') router.push('/products'); else setFormData({ ...formData, productId: val }) }} value={formData.productId}>
                                         <SelectTrigger><SelectValue placeholder="Seç..." /></SelectTrigger>
                                         <SelectContent>
                                             {products.map((p) => (
@@ -191,6 +169,14 @@ export default function TransactionsPage() {
                                                 {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
+                                    </div>
+                                )}
+
+                                {/* YENİ: Parti No ve SKT */}
+                                {formData.type === 'INBOUND' && (
+                                    <div className="grid grid-cols-2 gap-4 bg-orange-50 p-3 rounded border border-orange-100 animate-in fade-in">
+                                        <div className="space-y-2"><Label>Parti No</Label><Input placeholder="Lot/Batch" value={formData.batchNumber} onChange={e => setFormData({ ...formData, batchNumber: e.target.value })} /></div>
+                                        <div className="space-y-2"><Label>Son Kul. Tarihi</Label><Input type="date" value={formData.expirationDate} onChange={e => setFormData({ ...formData, expirationDate: e.target.value })} /></div>
                                     </div>
                                 )}
 
@@ -247,7 +233,6 @@ export default function TransactionsPage() {
                     </TableHeader>
                     <TableBody>
                         {loading ? (
-                            // Skeleton Loading
                             Array.from({ length: 5 }).map((_, index) => (
                                 <TableRow key={index}>
                                     <TableCell><Skeleton className="h-4 w-24" /></TableCell>
@@ -260,7 +245,6 @@ export default function TransactionsPage() {
                                 </TableRow>
                             ))
                         ) : transactions.length === 0 ? (
-                            // Empty State
                             <TableRow>
                                 <TableCell colSpan={7} className="p-0">
                                     <EmptyState
@@ -273,17 +257,16 @@ export default function TransactionsPage() {
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            // Data Rows
-                            transactions.map(tx => (
+                            transactions.map((tx) => (
                                 <TableRow key={tx.id} className="hover:bg-slate-50/50 transition-colors">
                                     <TableCell className="text-xs text-slate-500 font-mono">
                                         {new Date(tx.createdAt).toLocaleDateString('tr-TR')}
                                         <span className="text-slate-400 ml-1">{new Date(tx.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
                                     </TableCell>
                                     <TableCell>
-                                        <Badge variant={tx.type === 'INBOUND' ? 'default' : 'destructive'} className={`gap-1 px-2 py-0.5 font-normal ${tx.type === 'INBOUND' ? 'bg-green-100 text-green-700 hover:bg-green-200 border-green-200' : 'bg-red-100 text-red-700 hover:bg-red-200 border-red-200'}`}>
-                                            {tx.type === 'INBOUND' ? <ArrowDownRight size={12} /> : <ArrowUpRight size={12} />}
-                                            {tx.type === 'INBOUND' ? 'GİRİŞ' : 'ÇIKIŞ'}
+                                        <Badge variant={tx.type === 'INBOUND' ? 'default' : 'destructive'} className={`gap-1 px-2 py-0.5 font-normal ${tx.type === 'INBOUND' ? 'bg-green-100 text-green-700 hover:bg-green-200 border-green-200' : (tx.type === 'WASTAGE' ? 'bg-orange-100 text-orange-700 hover:bg-orange-200 border-orange-200' : 'bg-red-100 text-red-700 hover:bg-red-200 border-red-200')}`}>
+                                            {tx.type === 'INBOUND' ? <ArrowDownRight size={12} /> : (tx.type === 'WASTAGE' ? <AlertTriangle size={12} /> : <ArrowUpRight size={12} />)}
+                                            {tx.type === 'INBOUND' ? 'GİRİŞ' : (tx.type === 'WASTAGE' ? 'ZAYİ' : 'ÇIKIŞ')}
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="font-medium text-slate-900">{tx.product.name}</TableCell>
