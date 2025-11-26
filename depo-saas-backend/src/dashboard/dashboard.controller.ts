@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards, Request, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Request, Query } from '@nestjs/common';
 import { DashboardService } from './dashboard.service';
 import { AuthGuard } from '@nestjs/passport';
 
@@ -14,24 +14,19 @@ export class DashboardController {
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string
   ) {
-    // EĞER KULLANICI PERSONEL VEYA ŞUBE MÜDÜRÜ İSE:
-    // Zorunlu olarak sadece kendi şubesinin verisini görür.
-    if (req.user.role === 'BRANCH_MANAGER' || req.user.role === 'STAFF') {
-      return this.dashboardService.getStats(
-        req.user.tenantId,
-        req.user.branchId, // Zorunlu kendi şubesi
-        startDate,
-        endDate
-      );
-    }
+    const userBranch = (req.user.role === 'BRANCH_MANAGER' || req.user.role === 'STAFF') ? req.user.branchId : branchId;
+    return this.dashboardService.getStats(req.user.tenantId, userBranch, startDate, endDate);
+  }
 
-    // EĞER ADMİN VEYA SÜPER ADMİN İSE:
-    // Gönderdiği branchId filtresine göre (Tümü veya Seçili) veri görür.
-    return this.dashboardService.getStats(
-      req.user.tenantId,
-      branchId,
-      startDate,
-      endDate
-    );
+  // YENİ: Düzeni Getir
+  @Get('layout')
+  getLayout(@Request() req) {
+    return this.dashboardService.getUserLayout(req.user.userId);
+  }
+
+  // YENİ: Düzeni Kaydet
+  @Post('layout')
+  saveLayout(@Request() req, @Body() body: any) {
+    return this.dashboardService.updateUserLayout(req.user.userId, body.layout);
   }
 }

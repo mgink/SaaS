@@ -11,23 +11,21 @@ datasource db {
 // 1. SİSTEM VE ABONELİK YÖNETİMİ
 // ==========================================
 
-// Paketler (Subscription Plans)
 model SubscriptionPlan {
   id            String   @id @default(uuid())
   name          String
   code          String   @unique // FREE, STARTER, PRO, ENTERPRISE
   price         Float
   currency      String   @default("₺")
-  order         Int      @default(0)     // Sürükle-Bırak Sıralaması
-  isActive      Boolean  @default(true)  // Paketi pasife alma
+  order         Int      @default(0)
+  isActive      Boolean  @default(true)
   
-  // Limitler (0 = Sınırsız)
   maxUsers      Int
   maxProducts   Int
   maxWarehouses Int
-  maxBranches   Int      @default(0)     // Şube Limiti
+  maxBranches   Int      @default(0)
   
-  features      String[] // Özellik Listesi
+  features      String[]
   isPopular     Boolean  @default(false)
   
   tenants       Tenant[]
@@ -35,7 +33,6 @@ model SubscriptionPlan {
   updatedAt     DateTime @updatedAt
 }
 
-// Kurumsal Teklif Talepleri (Landing Page'den gelen formlar)
 model EnterpriseRequest {
   id          String   @id @default(uuid())
   companyName String
@@ -58,29 +55,22 @@ enum RequestStatus {
 // 2. ŞİRKET, ŞUBE VE KULLANICI YAPISI
 // ==========================================
 
-// Şirket (Tenant) - Ana Müşteri
 model Tenant {
   id          String   @id @default(uuid())
   name        String
   subdomain   String   @unique
   isActive    Boolean  @default(true)
-  
-  // Detay Bilgiler
   phone       String?
   address     String?
   taxNo       String?
   taxOffice   String?
   contactName String?
   website     String?
-
-  // Abonelik
   planId      String?
   plan        SubscriptionPlan? @relation(fields: [planId], references: [id])
-  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // İlişkiler
   users               User[]
   branches            Branch[]
   warehouses          Warehouse[]
@@ -89,32 +79,26 @@ model Tenant {
   products            Product[]
   transactions        Transaction[]
   procurementRequests ProcurementRequest[]
+  purchaseOrders      PurchaseOrder[]
+  stockForms          StockForm[] 
 }
 
-// Şube (Branch) - Fiziksel Lokasyonlar
 model Branch {
   id          String   @id @default(uuid())
   name        String
   location    String?
   phone       String?
-  
   tenantId    String
   tenant      Tenant   @relation(fields: [tenantId], references: [id])
-  
-  warehouses  Warehouse[]
-  users       User[]
-  
-  // Şubeye gelen talepler
+  warehouses          Warehouse[]
+  users               User[]
   procurementRequests ProcurementRequest[]
-
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  deletedAt   DateTime? // Soft Delete
-
+  deletedAt   DateTime?
   @@unique([tenantId, name])
 }
 
-// Kullanıcı (User)
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
@@ -123,81 +107,71 @@ model User {
   phone     String?
   role      Role     @default(STAFF)
   
-  // Güvenlik
-  isPasswordChanged Boolean @default(false) // İlk girişte şifre değiştirme zorunluluğu
-  
-  // Yetkiler ve Konum
+  isPasswordChanged Boolean @default(false)
   canCreateProduct Boolean @default(false)
-  autoApprove      Boolean  @default(false) // İşlemleri otomatik onaylama yetkisi
-  tags             String[] // Personel etiketleri
+  autoApprove      Boolean  @default(false)
+  tags             String[]
   
   branchId         String?
   branch           Branch? @relation(fields: [branchId], references: [id])
-
   tenantId  String
   tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
-  // Yaptığı İşlemler
+  // İlişkiler
   logs                 Log[]
   createdTransactions  Transaction[] @relation("CreatedBy")
   approvedTransactions Transaction[] @relation("ApprovedBy")
   notifications        Notification[]
-  createdProducts      Product[] @relation("ProductCreator") // Ürünleri kim ekledi?
-  requests             ProcurementRequest[] @relation("Requester") // Talepleri kim açtı?
+  createdProducts      Product[] @relation("ProductCreator")
+  requests             ProcurementRequest[] @relation("Requester")
+  createdPurchaseOrders PurchaseOrder[] @relation("POCreator")
+  createdStockForms    StockForm[] @relation("FormCreator")
+  
+  dashboardConfig      DashboardConfig? 
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  deletedAt DateTime? // Soft Delete
+  deletedAt DateTime?
 }
 
 enum Role {
-  SUPER_ADMIN    // Platform Sahibi
-  ADMIN          // Şirket Sahibi
-  BRANCH_MANAGER // Şube Müdürü
-  STAFF          // Depo Personeli
-  VIEWER         // Sadece İzleyici
+  SUPER_ADMIN
+  ADMIN
+  BRANCH_MANAGER
+  STAFF
+  VIEWER
 }
 
 // ==========================================
-// 3. DEPO VE ENVANTER YÖNETİMİ
+// 3. ENVANTER YÖNETİMİ
 // ==========================================
 
-// Depo (Warehouse)
 model Warehouse {
   id        String   @id @default(uuid())
   name      String
   location  String?
-  
   branchId  String?
   branch    Branch?  @relation(fields: [branchId], references: [id])
-
   tenantId  String
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  
   products    Product[]
   departments Department[]
-
-  deletedAt DateTime? // Soft Delete
+  deletedAt DateTime?
   @@unique([tenantId, name])
 }
 
-// Departman / Raf / Bölüm
 model Department {
   id        String   @id @default(uuid())
   name      String
-  
   tenantId  String
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  
   warehouseId String?
   warehouse   Warehouse? @relation(fields: [warehouseId], references: [id], onDelete: SetNull)
-  
   products    Product[]
-  deletedAt   DateTime? // Soft Delete
+  deletedAt   DateTime?
   @@unique([tenantId, name])
 }
 
-// Tedarikçi (Supplier)
 model Supplier {
   id          String   @id @default(uuid())
   name        String
@@ -206,100 +180,73 @@ model Supplier {
   email       String?
   address     String?
   category    String?
-  
   isActive    Boolean  @default(true)
-  
   tenantId    String
   tenant      Tenant   @relation(fields: [tenantId], references: [id])
   
-  transactions Transaction[] // Tedarikçiden yapılan alımlar
-  
-  // Çoklu Tedarikçi İlişkisi
+  transactions Transaction[]
   productLinks ProductSupplier[]
-  
-  // Varsayılan ilişki (Prisma uyumluluğu için)
   products     Product[]
+  purchaseOrders PurchaseOrder[]
+  stockForms   StockForm[] 
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  deletedAt   DateTime? // Soft Delete
-
+  deletedAt   DateTime?
   @@unique([tenantId, name])
 }
 
-// Ürün - Tedarikçi Ara Tablosu (Many-to-Many)
 model ProductSupplier {
   id         String   @id @default(uuid())
-  
   productId  String
   product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  
   supplierId String
   supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
-  
-  isMain     Boolean  @default(false) // Ana Tedarikçi mi?
-
+  isMain     Boolean  @default(false)
   @@unique([productId, supplierId])
 }
 
-// Ürün (Product)
 model Product {
   id           String   @id @default(uuid())
   name         String
-  sku          String   // İç Stok Kodu (Otomatik Üretilen)
-  barcode      String?  // Barkod (EAN/UPC - Kamerayla okunan)
+  sku          String
+  barcode      String?
   description  String?
-  
-  // Fiyatlar
   buyingPrice  Float    @default(0)
   sellingPrice Float    @default(0)
-
-  // Stok Durumu
   minStock     Int      @default(10)
   currentStock Int      @default(0)
-  
-  // Birim Yönetimi
-  unitType     String   @default("PIECE") // PIECE, BOX, KG, LT
-  itemsPerBox  Int      @default(1)       // Koli içi adet
-  
-  // SKT ve Parti Takibi
+  unitType     String   @default("PIECE")
+  itemsPerBox  Int      @default(1)
   batchNumber    String?
   expirationDate DateTime?
   
-  // Konum
   warehouseId  String?
   warehouse    Warehouse? @relation(fields: [warehouseId], references: [id])
   departmentId String?
   department   Department? @relation(fields: [departmentId], references: [id])
-  
-  // Varsayılan Tedarikçi (Hızlı Erişim İçin)
   supplierId   String?
   supplier     Supplier? @relation(fields: [supplierId], references: [id])
-  
-  // Alternatif Tedarikçiler (Tam Liste)
   suppliers    ProductSupplier[]
 
-  // Durum ve Onay
   status          ProductStatus @default(PENDING)
   rejectionReason String?
   documentUrl     String?
   isCash          Boolean       @default(true)
   paymentDate     DateTime?
 
-  // İlişkiler
   createdById  String?
   createdBy    User?    @relation("ProductCreator", fields: [createdById], references: [id])
-
   tenantId     String
   tenant       Tenant    @relation(fields: [tenantId], references: [id])
   
   transactions Transaction[]
   procurementRequests ProcurementRequest[]
+  purchaseOrderItems PurchaseOrderItem[]
 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  deletedAt    DateTime? // Soft Delete
-
+  deletedAt    DateTime?
   @@unique([tenantId, sku])
 }
 
@@ -310,55 +257,70 @@ enum ProductStatus {
 }
 
 // ==========================================
-// 4. İŞLEM VE TALEPLER
+// 4. İŞLEM VE SİPARİŞLER
 // ==========================================
 
-// Stok Hareketleri (Giriş/Çıkış)
+model StockForm {
+  id          String   @id @default(uuid())
+  formNumber  String   // Fiş No
+  type        TransactionType
+  
+  waybillNo   String?
+  waybillDate DateTime?
+  notes       String?
+
+  supplierId  String?
+  supplier    Supplier? @relation(fields: [supplierId], references: [id])
+
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  createdById String
+  createdBy   User     @relation("FormCreator", fields: [createdById], references: [id])
+
+  transactions Transaction[] 
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 model Transaction {
   id          String   @id @default(uuid())
   type        TransactionType
   quantity    Int
   status      Status   @default(PENDING)
   
-  // Detaylar
   waybillNo   String?
   waybillDate DateTime?
   paymentDate DateTime?
   documentUrl String?
   notes       String?
-  
-  // Finansal Durum (Vadeli Takip İçin)
   isCash      Boolean  @default(true)
   isPaid      Boolean  @default(false)
-
-  // SKT ve Parti Takibi (Bu işlem özelinde)
   batchNumber    String?
   expirationDate DateTime?
 
-  // İlişkiler
   productId   String
   product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  
   supplierId  String?
   supplier    Supplier? @relation(fields: [supplierId], references: [id])
-
   tenantId    String
   tenant      Tenant   @relation(fields: [tenantId], references: [id])
-
   createdById String
   createdBy   User     @relation("CreatedBy", fields: [createdById], references: [id])
-
   approvedById String?
   approvedBy   User?    @relation("ApprovedBy", fields: [approvedById], references: [id])
 
+  stockFormId String?
+  stockForm   StockForm? @relation(fields: [stockFormId], references: [id], onDelete: Cascade)
+
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt // Otomatik güncelleme
+  updatedAt   DateTime @updatedAt
 }
 
 enum TransactionType {
   INBOUND
   OUTBOUND
-  WASTAGE   // Zayi / Fire
+  WASTAGE
 }
 
 enum Status {
@@ -367,31 +329,59 @@ enum Status {
   REJECTED
 }
 
-// Talep Yönetimi (Satın Alma / Depo Düşme İstekleri)
+model PurchaseOrder {
+  id            String   @id @default(uuid())
+  orderNumber   String
+  status        OrderStatus @default(DRAFT)
+  expectedDate  DateTime?
+  supplierId    String
+  supplier      Supplier @relation(fields: [supplierId], references: [id])
+  items         PurchaseOrderItem[]
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  createdById   String
+  createdBy     User     @relation("POCreator", fields: [createdById], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model PurchaseOrderItem {
+  id               String   @id @default(uuid())
+  purchaseOrderId  String
+  purchaseOrder    PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  productId        String
+  product          Product       @relation(fields: [productId], references: [id])
+  quantityExpected Int      
+  quantityReceived Int      @default(0)
+  unitPrice        Float?   
+  notes            String?  
+  @@unique([purchaseOrderId, productId])
+}
+
+enum OrderStatus {
+  DRAFT
+  ORDERED
+  PARTIAL
+  COMPLETED
+  CANCELLED
+}
+
 model ProcurementRequest {
   id           String   @id @default(uuid())
   quantity     Int
   reason       String?  
-  
   status       ProcurementStatus @default(PENDING)
   type         RequestType       @default(PURCHASE)
-  
   adminNote    String?  
   deliveryDate DateTime? 
-  
   productId    String
   product      Product  @relation(fields: [productId], references: [id])
-  
   requesterId  String
   requester    User     @relation("Requester", fields: [requesterId], references: [id])
-  
-  // Hangi şubenin talebi?
   branchId     String?
   branch       Branch?  @relation(fields: [branchId], references: [id])
-  
   tenantId     String
   tenant       Tenant   @relation(fields: [tenantId], references: [id])
-
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
@@ -405,14 +395,23 @@ enum ProcurementStatus {
 }
 
 enum RequestType {
-  PURCHASE   // Satın Alma
-  STOCK_OUT  // Stok Düşme
-  INBOUND    // Mal Kabul
+  PURCHASE   
+  STOCK_OUT  
+  INBOUND    
 }
 
 // ==========================================
-// 5. SİSTEM LOGLARI VE BİLDİRİMLER
+// 5. DİĞER (LOG, BİLDİRİM, DASHBOARD)
 // ==========================================
+
+model DashboardConfig {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  layout    Json     
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
 
 model Log {
   id        String   @id @default(uuid())
@@ -429,6 +428,6 @@ model Notification {
   user      User     @relation(fields: [userId], references: [id])
   message   String
   read      Boolean  @default(false)
-  type      String   // INFO, WARNING, SUCCESS, ERROR
+  type      String   
   createdAt DateTime @default(now())
 }
