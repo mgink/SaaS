@@ -1,4 +1,4 @@
-import { PrismaClient, TransactionType, RequestStatus, Product, Supplier, OrderStatus, ProcurementStatus, RequestType as RequestTypeEnum, ProductStatus, Role, User } from '@prisma/client';
+import { PrismaClient, TransactionType, RequestStatus, Product, Supplier, OrderStatus, ProcurementStatus, RequestType as RequestTypeEnum, ProductStatus, Role, User, Warehouse, Department } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -8,7 +8,27 @@ const getRandomInt = (min: number, max: number) => Math.floor(Math.random() * (m
 const getRandomItem = (arr: any[]) => arr[Math.floor(Math.random() * arr.length)];
 const randomDate = (start: Date, end: Date) => new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
 
-// Rastgele Ürün İsimleri Oluşturucu
+// Rastgele Veri Listeleri
+const FIRST_NAMES = ['Ahmet', 'Mehmet', 'Ayşe', 'Fatma', 'Mustafa', 'Zeynep', 'Emre', 'Selin', 'Can', 'Elif', 'Burak', 'Ceren', 'Deniz', 'Gamze', 'Hakan', 'İrem', 'Kaan', 'Leyla', 'Mert', 'Nur', 'Oğuz', 'Pelin', 'Rüzgar', 'Seda', 'Tolga', 'Umut', 'Volkan', 'Yağmur', 'Zafer', 'Buse', 'Cem', 'Derya', 'Eren', 'Fulya', 'Gökhan', 'Hande', 'İlker', 'Jale', 'Kerem', 'Melis'];
+const LAST_NAMES = ['Yılmaz', 'Kaya', 'Demir', 'Çelik', 'Şahin', 'Yıldız', 'Yıldırım', 'Öztürk', 'Aydın', 'Özdemir', 'Arslan', 'Doğan', 'Kılıç', 'Aslan', 'Çetin', 'Kara', 'Koç', 'Kurt', 'Özkan', 'Şimşek', 'Polat', 'Korkmaz', 'Özcan', 'Çakır', 'Erdoğan', 'Yavuz', 'Can', 'Acar', 'Şen', 'Aksoy'];
+const BRANCH_LOCATIONS = ['Kadıköy Rıhtım', 'Beşiktaş Çarşı', 'Nişantaşı', 'Karaköy', 'Moda', 'Bağdat Caddesi', 'Etiler', 'Bebek', 'Ortaköy', 'Üsküdar', 'Ataşehir', 'Maslak', 'Levent', 'Taksim', 'Şişhane', 'Göktürk', 'Kemerburgaz', 'Florya', 'Bakırköy', 'Cihangir', 'Galata'];
+const SUPPLIER_DATA = [
+    { name: 'Probador Co.', category: 'Kahve' }, { name: 'Sütaş Kurumsal', category: 'Süt' }, { name: 'Metro Toptan', category: 'Genel' }, { name: 'Paketleme Dünyası', category: 'Ambalaj' }, { name: 'Halil Usta Pastanesi', category: 'Gıda' }, { name: 'Nestle Professional', category: 'Kahve' }, { name: 'Coca Cola İçecek', category: 'İçecek' }, { name: 'Eti Gıda', category: 'Gıda' }, { name: 'Dimes', category: 'İçecek' }, { name: 'Pınar Süt', category: 'Süt' }, { name: 'Uno Ekmek', category: 'Gıda' }, { name: 'Beypazarı', category: 'İçecek' }, { name: 'Doğuş Çay', category: 'İçecek' }, { name: 'Mehmet Efendi', category: 'Kahve' }, { name: 'Callebaut', category: 'Gıda' }, { name: 'Monin', category: 'Şurup' }, { name: 'Fabbri', category: 'Sos' }, { name: 'Seyidoğlu', category: 'Gıda' }, { name: 'Namet', category: 'Gıda' }, { name: 'SuperFresh', category: 'Donuk' }
+];
+const PRODUCT_TEMPLATES = [
+    { name: 'Espresso Blend', unit: 'KG', price: 450, cat: 'Kahve' }, { name: 'Tam Yağlı Süt', unit: 'BOX', items: 12, price: 320, cat: 'Süt' }, { name: 'Yulaf Sütü', unit: 'PIECE', price: 85, cat: 'Süt' }, { name: 'Karton Bardak 8oz', unit: 'BOX', items: 1000, price: 1500, cat: 'Ambalaj' }, { name: 'Cheesecake', unit: 'PIECE', price: 600, cat: 'Gıda' }, { name: 'Karamel Şurubu', unit: 'PIECE', price: 450, cat: 'Şurup' }, { name: 'Filtre Kahve', unit: 'KG', price: 380, cat: 'Kahve' }, { name: 'Sandviç Ekmek', unit: 'PIECE', price: 15, cat: 'Gıda' }, { name: 'Pipet Siyah', unit: 'BOX', items: 500, price: 120, cat: 'Ambalaj' }, { name: 'Peçete', unit: 'BOX', items: 100, price: 50, cat: 'Ambalaj' }, { name: 'Çikolata Sos', unit: 'PIECE', price: 250, cat: 'Sos' }, { name: 'Muffin', unit: 'PIECE', price: 45, cat: 'Gıda' }, { name: 'Croissant', unit: 'PIECE', price: 35, cat: 'Gıda' }, { name: 'Badem Sütü', unit: 'PIECE', price: 95, cat: 'Süt' }, { name: 'Türk Kahvesi', unit: 'KG', price: 400, cat: 'Kahve' }, { name: 'Limonata', unit: 'PIECE', price: 60, cat: 'İçecek' }, { name: 'Soda', unit: 'BOX', items: 24, price: 240, cat: 'İçecek' }, { name: 'Esmer Şeker', unit: 'KG', price: 80, cat: 'Gıda' }, { name: 'Beyaz Şeker', unit: 'KG', price: 60, cat: 'Gıda' }, { name: 'Temizlik Bezi', unit: 'PIECE', price: 20, cat: 'Temizlik' }, { name: 'Bulaşık Deterjanı', unit: 'PIECE', price: 150, cat: 'Temizlik' }, { name: 'El Sabunu', unit: 'PIECE', price: 80, cat: 'Temizlik' }, { name: 'Çöp Torbası', unit: 'BOX', items: 50, price: 90, cat: 'Ambalaj' }
+];
+const REQUEST_REASONS = [
+    'Stok kritik seviyede', 'Müşteri özel siparişi', 'Haftasonu yoğunluğu beklentisi',
+    'Ürün bozuk çıktı, telafi lazım', 'Barista eğitimi için ekstra', 'Yeni menü denemesi',
+    'Tedarikçi kampanyası var', 'Acil durum stoku', 'Raf ömrü dolmak üzere', 'Sezonluk yoğunluk'
+];
+const ADMIN_NOTES = [
+    'Onaylandı, siparişe eklenecek', 'Bütçe aşımı nedeniyle reddedildi', 'Depoda var, transfer edilecek',
+    'Beklemeye alındı', 'Tedarikçi ile görüşülüyor', 'Aciliyeti doğrulandı', 'Muadil ürün önerildi'
+];
+
+// EKSİK OLAN LİSTELER EKLENDİ
 const ADJECTIVES = ['Premium', 'Organik', 'Ekonomik', 'Gurme', 'Vegan', 'Glutensiz', 'Klasik', 'Gold', 'Special', 'Barista'];
 const NOUNS = ['Espresso Çekirdek', 'Filtre Kahve', 'Tam Yağlı Süt', 'Yulaf Sütü', 'Badem Sütü', 'Karamel Şurup', 'Vanilya Şurup', 'Çikolata Sos', 'Beyaz Çikolata', 'Chai Tea'];
 const PACKAGING = ['8oz Bardak', '12oz Bardak', '16oz Bardak', 'Pipet', 'Peçete', 'Taşıma Kabı', 'Karton Tutacak', 'Plastik Kapak'];
@@ -26,180 +46,138 @@ async function main() {
     const startTime = Date.now();
 
     // 1. TEMİZLİK
-    // =====================================================================================
-    await prisma.notification.deleteMany();
-    await prisma.log.deleteMany();
-    await prisma.transaction.deleteMany();
-    await prisma.stockForm.deleteMany(); // StockForm temizliği eklendi
-    await prisma.purchaseOrderItem.deleteMany();
-    await prisma.purchaseOrder.deleteMany();
-    await prisma.procurementRequest.deleteMany();
-    await prisma.productSupplier.deleteMany();
-    await prisma.product.deleteMany();
-    await prisma.department.deleteMany();
-    await prisma.warehouse.deleteMany();
-    await prisma.supplier.deleteMany();
-    await prisma.enterpriseRequest.deleteMany();
-    await prisma.user.deleteMany();
-    await prisma.branch.deleteMany();
-    await prisma.tenant.deleteMany();
-    await prisma.subscriptionPlan.deleteMany();
-    console.log('🧹 Temizlik tamamlandı.');
+    console.log('🧹 Veritabanı temizleniyor...');
+    const tablenames = ['Notification', 'Log', 'Transaction', 'StockForm', 'PurchaseOrderItem', 'PurchaseOrder', 'ProcurementRequest', 'ProductSupplier', 'Product', 'Department', 'Warehouse', 'Supplier', 'EnterpriseRequest', 'User', 'Branch', 'Tenant', 'SubscriptionPlan'];
+    for (const tableName of tablenames) {
+        try { await (prisma as any)[tableName].deleteMany(); } catch (e) { }
+    }
 
-    // 2. SİSTEM KURULUMU (Paketler & Şirket)
-    // =====================================================================================
+    // 2. SİSTEM KURULUMU
     const plans = [
-        { code: 'FREE', name: 'Başlangıç', price: 0, maxUsers: 1, maxProducts: 50, maxWarehouses: 1, maxBranches: 1, features: ['Tek Şube'], order: 1, isActive: true },
-        { code: 'PRO', name: 'Profesyonel', price: 499, maxUsers: 10, maxProducts: 5000, maxWarehouses: 5, maxBranches: 3, features: ['Çoklu Şube'], isPopular: true, order: 2, isActive: true },
         { code: 'ENTERPRISE', name: 'Zincir', price: 0, maxUsers: 0, maxProducts: 0, maxWarehouses: 0, maxBranches: 0, features: ['Sınırsız'], order: 3, isActive: true }
     ];
-    for (const p of plans) await prisma.subscriptionPlan.create({ data: p });
+    await prisma.subscriptionPlan.create({ data: plans[0] });
 
     const password = await bcrypt.hash('123456', 10);
     const tenant = await prisma.tenant.create({
         data: {
-            name: 'Grand Coffee Chain HQ',
-            subdomain: 'grandcoffee',
+            name: 'Urban Brew Lab',
+            subdomain: 'urbanbrew',
             plan: { connect: { code: 'ENTERPRISE' } },
-            address: 'Levent Plaza No:1, İstanbul',
-            phone: '0850 222 33 44',
-            taxNo: '1234567890',
+            address: 'Kanyon Ofis, İstanbul',
+            phone: '0850 333 99 88',
             isActive: true
         }
     });
+    const generateName = () => {
+        const first = getRandomItem(FIRST_NAMES);
+        const last = getRandomItem(LAST_NAMES);
+        return `${first} ${last}`;
+    };
 
-    // 3. ŞUBELER VE PERSONEL (5 Şube, 25+ Personel)
-    // =====================================================================================
-    const branchesData = [
-        { name: 'Merkez Depo & Lojistik', location: 'İkitelli OSB' },
-        { name: 'Kadıköy Rıhtım', location: 'Kadıköy' },
-        { name: 'Beşiktaş Çarşı', location: 'Beşiktaş' },
-        { name: 'Nişantaşı Flagship', location: 'Şişli' },
-        { name: 'Karaköy Sahil', location: 'Beyoğlu' }
-    ];
+    // 3. TEDARİKÇİLER
+    console.log('🚚 Tedarikçiler oluşturuluyor...');
+    const suppliers: Supplier[] = [];
+    for (const sData of SUPPLIER_DATA) {
+        const s = await prisma.supplier.create({ data: { ...sData, tenantId: tenant.id, contactName: generateName(), phone: `05${getRandomInt(30, 55)} ${getRandomInt(100, 999)} 0000`, email: `info@${sData.name.substring(0, 5).trim().toLowerCase()}.com` } });
+        suppliers.push(s);
+    }
 
+    // 4. ŞUBELER VE PERSONEL
+    console.log('🏢 20 Şube ve Personeller kuruluyor...');
     const branches: any[] = [];
     const allUsers: User[] = [];
 
-    // Süper Admin
-    const superAdmin = await prisma.user.create({
-        data: { email: 'admin@grandcoffee.com', password, fullName: 'CEO Patron', role: 'SUPER_ADMIN', tenantId: tenant.id, isPasswordChanged: true, canCreateProduct: true, autoApprove: true }
+    const admin = await prisma.user.create({
+        data: { email: 'admin@urbanbrew.com', password, fullName: 'CEO Patron', role: 'SUPER_ADMIN', tenantId: tenant.id, isPasswordChanged: true, canCreateProduct: true, autoApprove: true }
     });
-    allUsers.push(superAdmin);
+    allUsers.push(admin);
 
-    for (const [index, bData] of branchesData.entries()) {
-        // Şube Oluştur
-        const branch = await prisma.branch.create({ data: { ...bData, tenantId: tenant.id } });
+    for (let i = 0; i < BRANCH_LOCATIONS.length; i++) {
+        const branchName = BRANCH_LOCATIONS[i];
+        const branch = await prisma.branch.create({ data: { name: branchName, location: 'İstanbul', tenantId: tenant.id } });
         branches.push(branch);
 
-        // Şube Müdürü Oluştur
         const manager = await prisma.user.create({
-            data: {
-                email: `manager${index + 1}@grandcoffee.com`,
-                password,
-                fullName: `Müdür ${bData.name.split(' ')[0]}`,
-                role: 'BRANCH_MANAGER',
-                branchId: branch.id,
-                tenantId: tenant.id,
-                isPasswordChanged: true,
-                canCreateProduct: true,
-                autoApprove: true
-            }
+            data: { email: `manager.${i + 1}@urbanbrew.com`, password, fullName: generateName(), role: 'BRANCH_MANAGER', branchId: branch.id, tenantId: tenant.id, isPasswordChanged: true, canCreateProduct: true, autoApprove: true, tags: ['Yönetici'] }
         });
         allUsers.push(manager);
 
-        // 4 Adet Personel Oluştur
-        for (let i = 1; i <= 4; i++) {
-            const staff = await prisma.user.create({
-                data: {
-                    email: `staff${index + 1}_${i}@grandcoffee.com`,
-                    password,
-                    fullName: `Personel ${bData.name.split(' ')[0]} ${i}`,
-                    role: 'STAFF',
-                    branchId: branch.id,
-                    tenantId: tenant.id,
-                    isPasswordChanged: true,
-                    canCreateProduct: false,
-                    autoApprove: false // Otomatik onay yok, talep oluşturacaklar
-                }
-            });
-            allUsers.push(staff);
+        const roles = [{ count: 4, tag: 'Barista' }, { count: 2, tag: 'Mutfak' }, { count: 4, tag: 'Steward' }];
+        for (const r of roles) {
+            for (let j = 0; j < r.count; j++) {
+                const staff = await prisma.user.create({
+                    data: { email: `staff.${i + 1}.${r.tag.toLowerCase()}${j + 1}@urbanbrew.com`, password, fullName: generateName(), role: 'STAFF', branchId: branch.id, tenantId: tenant.id, isPasswordChanged: true, canCreateProduct: false, autoApprove: false, tags: [r.tag] }
+                });
+                allUsers.push(staff);
+            }
         }
     }
-    console.log(`🏢 5 Şube ve ${allUsers.length} Personel oluşturuldu.`);
 
-    // 4. DEPOLAR VE DEPARTMANLAR
-    // =====================================================================================
-    const warehouses: any[] = [];
-    const departments: any[] = [];
+    // 5. DEPOLAR VE DEPARTMANLAR
+    const warehouses: Warehouse[] = [];
+    const departments: Department[] = [];
 
     for (const branch of branches) {
-        // Her şubeye 2 depo (Ana Depo, Soğuk Hava)
         const whMain = await prisma.warehouse.create({ data: { name: `${branch.name} - Ana Depo`, branchId: branch.id, tenantId: tenant.id } });
-        const whCold = await prisma.warehouse.create({ data: { name: `${branch.name} - Soğuk Hava`, branchId: branch.id, tenantId: tenant.id } });
-        warehouses.push(whMain, whCold);
+        const whCold = await prisma.warehouse.create({ data: { name: `${branch.name} - +4 Dolap`, branchId: branch.id, tenantId: tenant.id } });
+        const whFreeze = await prisma.warehouse.create({ data: { name: `${branch.name} - -18 Buzluk`, branchId: branch.id, tenantId: tenant.id } });
+        warehouses.push(whMain, whCold, whFreeze);
 
-        // Departmanlar
         const d1 = await prisma.department.create({ data: { name: `${branch.name} - Bar Arkası`, warehouseId: whMain.id, tenantId: tenant.id } });
         const d2 = await prisma.department.create({ data: { name: `${branch.name} - Paketleme`, warehouseId: whMain.id, tenantId: tenant.id } });
         const d3 = await prisma.department.create({ data: { name: `${branch.name} - Mutfak`, warehouseId: whCold.id, tenantId: tenant.id } });
         departments.push(d1, d2, d3);
     }
 
-    // 5. TEDARİKÇİLER (20 Adet)
-    // =====================================================================================
-    const suppliers: Supplier[] = [];
-    const supplierNames = [
-        'Probador Co.', 'Sütaş Kurumsal', 'Metro Toptan', 'Paketleme Dünyası', 'Halil Usta Pastanesi',
-        'Nestle Professional', 'Coca Cola İçecek', 'Eti Gıda', 'Dimes Meyve Suları', 'Pınar Süt',
-        'Uno Ekmek', 'Beypazarı Maden Suyu', 'Doğuş Çay', 'Kuru Kahveci Mehmet Efendi', 'Callebaut Çikolata',
-        'Monin Şurupları', 'Fabbri Sosları', 'Seyidoğlu Gıda', 'Namet Gıda', 'SuperFresh'
-    ];
-
-    for (const name of supplierNames) {
-        const s = await prisma.supplier.create({
-            data: {
-                name,
-                contactName: `Satış Temsilcisi ${name.split(' ')[0]}`,
-                phone: `05${getRandomInt(30, 55)} ${getRandomInt(100, 999)} 0000`,
-                email: `info@${name.replace(/\s/g, '').toLowerCase()}.com`,
-                tenantId: tenant.id,
-                category: 'Genel'
-            }
-        });
-        suppliers.push(s);
-    }
-    console.log(`🚚 ${suppliers.length} Tedarikçi oluşturuldu.`);
-
-    // 6. ÜRÜNLER (Her şube için yüzlerce ürün - Toplamda 500+)
-    // =====================================================================================
+    // 6. ÜRÜNLER
     const allProducts: Product[] = [];
 
     for (const branch of branches) {
         const branchWarehouses = warehouses.filter(w => w.branchId === branch.id);
-        const productCountForBranch = getRandomInt(100, 120);
+        const productCountForBranch = getRandomInt(35, 50);
 
         for (let i = 0; i < productCountForBranch; i++) {
-            const wh = getRandomItem(branchWarehouses);
-            const dept = departments.find(d => d.warehouseId === wh.id) || getRandomItem(departments);
-            const sup = getRandomItem(suppliers);
+            // Rastgele isim veya template kullanımı
+            const useTemplate = Math.random() > 0.5;
+            let name = '', category = 'COFFEE', price = 0, unit = 'PIECE', items = 1;
+            let supplierId = '';
 
-            const categoryChoice = Math.random();
-            let category: any = 'COFFEE';
-            if (categoryChoice > 0.7) category = 'PACKAGING';
-            else if (categoryChoice > 0.4) category = 'FOOD';
+            if (useTemplate) {
+                const template = getRandomItem(PRODUCT_TEMPLATES);
+                name = `${template.name} ${['A', 'B', 'C'][i % 3]}`;
+                category = template.cat;
+                price = template.price;
+                unit = template.unit;
+                items = template.items || 1;
+            } else {
+                // Tamamen rastgele
+                const categoryChoice = Math.random();
+                if (categoryChoice > 0.7) category = 'PACKAGING';
+                else if (categoryChoice > 0.4) category = 'FOOD';
+                name = generateProductName(category as any);
+                price = getRandomInt(50, 500);
+                unit = category === 'PACKAGING' ? 'BOX' : 'PIECE';
+                items = category === 'PACKAGING' ? getRandomInt(50, 500) : 1;
+            }
 
-            const name = generateProductName(category);
+            const supplier = getRandomItem(suppliers.filter((s: any) => s.category === category || s.category === 'Genel')) || getRandomItem(suppliers);
+            supplierId = supplier.id;
+
+            let whId = branchWarehouses[0].id;
+            let deptId = departments.find(d => d.warehouseId === whId)?.id;
+
+            if (['Süt', 'İçecek', 'Sos'].includes(category)) { whId = branchWarehouses[1].id; }
+            if (['Gıda', 'Donuk'].includes(category)) { whId = branchWarehouses[2].id; }
 
             const uniqueSuffix = Math.random().toString(36).substring(2, 8).toUpperCase();
             const sku = `${branch.name.substring(0, 2).toUpperCase()}-${name.substring(0, 3).toUpperCase()}-${uniqueSuffix}`;
-
-            const price = getRandomInt(50, 500);
-            const minStock = getRandomInt(5, 20);
-            const isCritical = Math.random() > 0.85;
-            const stock = isCritical ? getRandomInt(0, minStock - 1) : getRandomInt(minStock + 5, 200);
-
             const barcode = `869${Math.floor(Date.now() + Math.random() * 1000000).toString().slice(-9)}`;
+
+            // KAOS: Stok Sorunu Olan Ürünler (%15)
+            const isCritical = Math.random() > 0.85;
+            const minStock = getRandomInt(10, 50);
+            const currentStock = isCritical ? getRandomInt(0, minStock - 1) : getRandomInt(minStock + 10, 300);
 
             const product = await prisma.product.create({
                 data: {
@@ -207,52 +185,47 @@ async function main() {
                     sku,
                     barcode,
                     tenantId: tenant.id,
-                    createdById: superAdmin.id,
-                    warehouseId: wh.id,
-                    departmentId: dept.id,
-                    supplierId: sup.id,
+                    createdById: admin.id,
+                    warehouseId: whId,
+                    departmentId: deptId,
+                    supplierId: supplier.id,
                     buyingPrice: price,
-                    sellingPrice: Math.round(price * 1.4),
+                    sellingPrice: Math.round(price * 2.5),
                     minStock,
-                    currentStock: stock,
-                    unitType: category === 'PACKAGING' ? 'BOX' : 'PIECE',
-                    itemsPerBox: category === 'PACKAGING' ? getRandomInt(50, 500) : 1,
-                    status: Math.random() > 0.95 ? 'PENDING' : 'APPROVED'
+                    currentStock,
+                    unitType: unit,
+                    itemsPerBox: items,
+                    status: (Math.random() > 0.95 ? 'PENDING' : 'APPROVED') as ProductStatus,
+                    batchNumber: `BATCH-${getRandomInt(2023, 2025)}-${getRandomInt(10, 99)}`
                 }
             });
             allProducts.push(product);
 
             if (product.status === 'APPROVED') {
-                await prisma.productSupplier.create({
-                    data: { productId: product.id, supplierId: sup.id, isMain: true }
-                });
+                await prisma.productSupplier.create({ data: { productId: product.id, supplierId: supplier.id, isMain: true } });
             }
         }
     }
     console.log(`🛒 ${allProducts.length} Ürün oluşturuldu.`);
 
-    // 7. GEÇMİŞ İŞLEMLER (TRANSACTIONS - 1 Yıllık Veri)
-    // =====================================================================================
-    const transactionCount = 2000;
+    // 7. İŞLEMLER (20.000 Hareket)
+    console.log('🔄 20.000 İşlem ve Finansal Kayıt oluşturuluyor...');
     const oneYearAgo = new Date();
     oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-    const transactions: any[] = [];
 
-    console.log(`🔄 ${transactionCount} işlem geçmişi oluşturuluyor (Bu biraz sürebilir)...`);
+    const transactionBatch: any[] = [];
 
-    for (let i = 0; i < transactionCount; i++) {
-        const approvedProducts = allProducts.filter(p => p.status === 'APPROVED');
-        const product = getRandomItem(approvedProducts);
+    for (let i = 0; i < 20000; i++) {
+        const product = getRandomItem(allProducts);
         if (!product) continue;
-
         const date = randomDate(oneYearAgo, new Date());
 
         const rand = Math.random();
         let type: TransactionType = 'OUTBOUND';
         if (rand > 0.65) type = 'INBOUND';
-        if (rand > 0.95) type = 'WASTAGE';
+        if (rand > 0.98) type = 'WASTAGE';
 
-        let qty = getRandomInt(1, 10);
+        let qty = getRandomInt(1, 20);
         if (product.unitType === 'BOX' && type !== 'INBOUND') qty = 1;
 
         let isCash = true;
@@ -260,7 +233,6 @@ async function main() {
         let paymentDate: Date | null = null;
 
         if (type === 'INBOUND' && Math.random() > 0.4) {
-            isCash = false;
             if (Math.random() > 0.7) {
                 isPaid = false;
                 const pastDue = new Date(date);
@@ -272,108 +244,132 @@ async function main() {
             }
         }
 
-        transactions.push(prisma.transaction.create({
-            data: {
-                productId: product.id,
-                tenantId: tenant.id,
-                createdById: superAdmin.id,
-                type,
-                quantity: qty,
-                status: 'APPROVED',
-                createdAt: date,
-                updatedAt: date,
-                supplierId: type === 'INBOUND' ? product.supplierId : null,
-                isCash,
-                isPaid,
-                paymentDate,
-                notes: type === 'WASTAGE' ? 'Kırılma/Bozulma' : 'Otomatik İşlem',
-                batchNumber: type === 'INBOUND' ? `LOT-${getRandomInt(1000, 9999)}` : null
-            }
-        }));
+        transactionBatch.push({
+            productId: product.id,
+            tenantId: tenant.id,
+            createdById: admin.id,
+            type,
+            quantity: qty,
+            status: 'APPROVED',
+            createdAt: date,
+            updatedAt: date,
+            supplierId: type === 'INBOUND' ? product.supplierId : null,
+            isCash: type === 'INBOUND' ? false : true,
+            isPaid,
+            paymentDate,
+            notes: type === 'WASTAGE' ? 'Fire' : (type === 'INBOUND' ? 'Mal Kabul' : 'Satış'),
+            batchNumber: product.batchNumber
+        });
 
-        if (transactions.length >= 100) {
-            await prisma.$transaction(transactions);
-            transactions.length = 0;
+        if (transactionBatch.length >= 500) {
+            await prisma.transaction.createMany({ data: transactionBatch });
+            transactionBatch.length = 0;
+            process.stdout.write('.');
         }
     }
-    if (transactions.length > 0) await prisma.$transaction(transactions);
+    if (transactionBatch.length > 0) await prisma.transaction.createMany({ data: transactionBatch });
 
-    // 8. STOK FİŞLERİ (StockForm)
-    // =====================================================================================
-    console.log('📄 Stok Fişleri oluşturuluyor...');
-    for (let i = 0; i < 25; i++) {
+    // 8. STOK FİŞLERİ (STOCK FORM)
+    console.log('\n📄 Stok Fişleri (50 Adet)...');
+    for (let i = 0; i < 50; i++) {
         const date = randomDate(oneYearAgo, new Date());
         const type: TransactionType = Math.random() > 0.5 ? 'INBOUND' : 'OUTBOUND';
         const supplier = getRandomItem(suppliers);
         const formNumber = `SF-${type === 'INBOUND' ? 'IN' : 'OUT'}-${getRandomInt(10000, 99999)}`;
 
-        // Fiş başlığı
         const stockForm = await prisma.stockForm.create({
             data: {
                 formNumber,
                 type,
                 tenantId: tenant.id,
-                createdById: superAdmin.id,
+                createdById: admin.id,
                 createdAt: date,
                 updatedAt: date,
                 supplierId: type === 'INBOUND' ? supplier.id : null,
-                notes: 'Toplu işlem fişi (Demo)',
+                notes: 'Toplu Fiş Demo',
                 waybillNo: `IRS-${getRandomInt(100000, 999999)}`,
                 waybillDate: date
             }
         });
 
-        // Fişe ait 3-10 kalem ürün ekle
         const itemsCount = getRandomInt(3, 10);
         for (let j = 0; j < itemsCount; j++) {
-            const product = getRandomItem(allProducts.filter(p => p.status === 'APPROVED'));
-            if (!product) continue;
+            const prod = getRandomItem(allProducts.filter(p => p.status === 'APPROVED'));
+            if (!prod) continue;
 
-            const qty = getRandomInt(5, 50);
-
-            // İşlemi ekle ve forma bağla
             await prisma.transaction.create({
                 data: {
-                    productId: product.id,
+                    productId: prod.id,
                     tenantId: tenant.id,
-                    createdById: superAdmin.id,
+                    createdById: admin.id,
                     type,
-                    quantity: qty,
+                    quantity: getRandomInt(5, 50),
                     status: 'APPROVED',
                     createdAt: date,
                     updatedAt: date,
-                    stockFormId: stockForm.id, // <--- Fişe bağla
-                    isCash: true, // Basit tutuyoruz
+                    stockFormId: stockForm.id,
+                    isCash: true,
                     isPaid: true,
-                    notes: `Fiş: ${formNumber}`
+                    notes: `Fiş Kalemi: ${formNumber}`
                 }
             });
         }
     }
 
+    // 9. KAOTİK TALEPLER (150+ Talep)
+    console.log('📋 Talepler (Procurement Requests) oluşturuluyor...');
+    for (let i = 0; i < 150; i++) {
+        // Rastgele bir şube ve o şubenin personelini bul
+        const branch = getRandomItem(branches);
+        const branchStaff = allUsers.filter(u => u.branchId === branch.id && u.role === 'STAFF');
+        const requester = getRandomItem(branchStaff);
 
-    // 9. AKTİF KAOS (Bekleyen Talepler ve Siparişler)
-    // =====================================================================================
-    for (let i = 0; i < 15; i++) {
-        const user = getRandomItem(allUsers.filter((u: User) => u.role === 'STAFF'));
-        const product = getRandomItem(allProducts.filter((p: Product) => p.warehouseId));
-        if (!product || !user) continue;
+        // O şubedeki (veya herhangi bir) ürünü seç
+        const product = getRandomItem(allProducts);
+
+        if (!requester || !product) continue;
+
+        const statusRand = Math.random();
+        let status: ProcurementStatus = 'PENDING';
+        let adminNote: string | null = null;
+        let deliveryDate: Date | null = null;
+
+        if (statusRand > 0.8) {
+            status = 'REJECTED';
+            adminNote = getRandomItem(ADMIN_NOTES);
+        } else if (statusRand > 0.6) {
+            status = 'APPROVED';
+            adminNote = 'Onaylandı.';
+        } else if (statusRand > 0.4) {
+            status = 'ORDERED';
+            adminNote = 'Sipariş geçildi PO-12345';
+            deliveryDate = new Date(Date.now() + 86400000 * 3);
+        } else if (statusRand > 0.2) {
+            status = 'DELIVERED';
+            adminNote = 'Teslim alındı.';
+            deliveryDate = new Date();
+        }
 
         await prisma.procurementRequest.create({
             data: {
-                productId: product.id,
-                quantity: getRandomInt(5, 50),
-                reason: getRandomItem(['Stok bitiyor', 'Müşteri siparişi', 'Haftasonu hazırlığı', 'Acil ihtiyaç']),
-                requesterId: user.id,
-                branchId: user.branchId,
                 tenantId: tenant.id,
-                status: 'PENDING',
-                type: 'PURCHASE'
+                branchId: branch.id,
+                requesterId: requester.id,
+                productId: product.id,
+                quantity: getRandomInt(5, 100),
+                reason: getRandomItem(REQUEST_REASONS),
+                status: status,
+                type: 'PURCHASE',
+                adminNote: adminNote,
+                deliveryDate: deliveryDate,
+                createdAt: randomDate(new Date(Date.now() - 1000 * 60 * 60 * 24 * 60), new Date())
             }
         });
     }
 
-    for (let i = 0; i < 8; i++) {
+    // 10. SATIN ALMA SİPARİŞLERİ (PO)
+    console.log('📦 Siparişler (Purchase Orders) oluşturuluyor...');
+    for (let i = 0; i < 30; i++) {
         const supplier = getRandomItem(suppliers);
         const prod = getRandomItem(allProducts.filter((p: Product) => p.supplierId === supplier.id));
 
@@ -381,10 +377,10 @@ async function main() {
             await prisma.purchaseOrder.create({
                 data: {
                     orderNumber: `PO-2025-${getRandomInt(1000, 9999)}`,
-                    status: 'ORDERED',
+                    status: Math.random() > 0.5 ? 'ORDERED' : 'COMPLETED',
                     supplierId: supplier.id,
                     tenantId: tenant.id,
-                    createdById: superAdmin.id,
+                    createdById: admin.id,
                     expectedDate: new Date(new Date().getTime() + 86400000 * getRandomInt(1, 7)),
                     items: {
                         create: [
@@ -397,9 +393,9 @@ async function main() {
     }
 
     const endTime = Date.now();
-    console.log(`✅ SİMÜLASYON TAMAMLANDI! (${((endTime - startTime) / 1000).toFixed(2)} saniye)`);
+    console.log(`\n✅ ULTRA KAOS TAMAMLANDI! (${((endTime - startTime) / 1000).toFixed(2)} saniye)`);
     console.log('---------------------------------------------------');
-    console.log('👑 Giriş: admin@grandcoffee.com / 123456');
+    console.log('👑 Giriş: admin@urbanbrew.com / 123456');
     console.log('---------------------------------------------------');
 }
 

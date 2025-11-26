@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import { RequestType } from '@prisma/client';
+import { RequestType, ProcurementStatus } from '@prisma/client';
 
 @Injectable()
 export class RequestsService {
@@ -10,7 +10,6 @@ export class RequestsService {
     private notificationService: NotificationsService
   ) { }
 
-  // --- TALEP OLUŞTURMA ---
   async create(data: any, user: any) {
     let rType: RequestType = 'PURCHASE';
     if (data.type === 'INBOUND') rType = 'INBOUND';
@@ -24,13 +23,12 @@ export class RequestsService {
         type: rType,
         requesterId: user.userId,
         tenantId: user.tenantId,
-        branchId: user.branchId || null, // Şube bilgisini kaydet
+        branchId: user.branchId || null,
         status: 'PENDING'
       },
       include: { product: true, requester: true, branch: true }
     });
 
-    // Bildirim: İlgili şube müdürüne ve patrona
     const branchName = request.branch?.name || 'Merkez';
     await this.notificationService.notifyManagers(
       user.tenantId,
@@ -41,14 +39,8 @@ export class RequestsService {
     return request;
   }
 
-  // --- LİSTELEME (FİLTRELİ) ---
   async findAll(user: any) {
     let whereClause: any = { tenantId: user.tenantId };
-
-    // HİYERARŞİ KONTROLÜ:
-    // 1. ADMIN / SUPER_ADMIN: Her şeyi görür.
-    // 2. BRANCH_MANAGER: Sadece kendi şubesini görür.
-    // 3. STAFF: Sadece kendi açtığı talepleri görür.
 
     if (user.role === 'BRANCH_MANAGER') {
       whereClause.branchId = user.branchId;
@@ -67,12 +59,10 @@ export class RequestsService {
     });
   }
 
-  // --- GÜNCELLEME (ONAY / SİPARİŞ / RED) ---
   async update(id: string, data: any, user: any) {
     const request = await this.prisma.procurementRequest.findUnique({ where: { id } });
     if (!request) throw new BadRequestException("Talep bulunamadı");
 
-    // Şube Müdürü, başka şubenin talebini yönetemez
     if (user.role === 'BRANCH_MANAGER' && request.branchId !== user.branchId) {
       throw new BadRequestException("Bu talep sizin şubenize ait değil.");
     }
@@ -87,7 +77,6 @@ export class RequestsService {
       include: { product: true }
     });
 
-    // Talep sahibine bildirim
     const statusMsg = data.status === 'APPROVED' ? 'Onaylandı' : (data.status === 'ORDERED' ? 'Sipariş Verildi' : 'Güncellendi');
     await this.notificationService.create(
       updatedRequest.requesterId,
@@ -98,10 +87,39 @@ export class RequestsService {
     return updatedRequest;
   }
 
-  // --- MAL KABUL (Sipariş -> Stok) ---
+  // --- YENİ: TOPLU GÜNCELLEME ---
+  async bulkUpdateStatus(ids: string[], status: ProcurementStatus, user: any) {
+    // 1. Yetki Kontrolü: Sadece kendi şubesi veya tümü
+    const requests = await this.prisma.procurementRequest.findMany({
+      where: {
+        id: { in: ids },
+        tenantId: user.tenantId
+      }
+    });
+
+    if (requests.length === 0) return { count: 0 };
+
+    // Şube yöneticisi sadece kendi şubesine ait olanları güncelleyebilir
+    const validIds = requests
+      .filter(req => {
+        if (user.role === 'BRANCH_MANAGER') return req.branchId === user.branchId;
+        return true; // Admin ise hepsi
+      })
+      .map(r => r.id);
+
+    if (validIds.length === 0) throw new BadRequestException("Seçilen talepler üzerinde yetkiniz yok.");
+
+    // 2. Güncelleme
+    const result = await this.prisma.procurementRequest.updateMany({
+      where: { id: { in: validIds } },
+      data: { status }
+    });
+
+    return result;
+  }
+
   async receiveGoods(id: string, user: any) {
     return this.prisma.$transaction(async (tx) => {
-      // 1. Talebi Bul
       const request = await tx.procurementRequest.findUnique({
         where: { id },
         include: { product: true }
@@ -110,16 +128,11 @@ export class RequestsService {
       if (!request) throw new BadRequestException("Talep bulunamadı.");
       if (request.status !== 'ORDERED') throw new BadRequestException("Sadece 'Sipariş Verildi' durumundaki ürünler kabul edilebilir.");
 
-      // 2. Talebi Kapat (DELIVERED)
       const updatedRequest = await tx.procurementRequest.update({
         where: { id },
         data: { status: 'DELIVERED', deliveryDate: new Date() }
       });
 
-      // 3. Koli Hesabı (Talepteki miktar adet kabul edilir, koli hesabı ürün girişinde yapıldı varsayılır)
-      // Veya burada da koli çarpımı yapılabilir ama basitlik için talep miktarı = stok artışı diyelim.
-
-      // 4. Stok Hareketi Oluştur (INBOUND)
       await tx.transaction.create({
         data: {
           type: 'INBOUND',
@@ -129,21 +142,19 @@ export class RequestsService {
           createdById: user.userId,
           status: 'APPROVED',
           notes: `Sipariş Teslim Alındı (Talep #${request.id.slice(0, 4)})`,
-          isCash: false, // Genelde siparişler vadelidir
+          isCash: false,
           isPaid: false
         }
       });
 
-      // 5. Ürün Stoğunu Artır
       await tx.product.update({
         where: { id: request.productId },
         data: { currentStock: { increment: request.quantity } }
       });
 
-      // 6. Bildirim
       await this.notificationService.create(
         request.requesterId,
-        `📦 Mal Kabul: ${request.product.name} depoya girdi ve stok güncellendi.`,
+        `📦 Mal Kabul: ${request.product.name} stoğa eklendi.`,
         'SUCCESS'
       );
 

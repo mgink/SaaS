@@ -7,12 +7,11 @@ import { PrismaService } from '../prisma/prisma.service';
 export class SettingsController {
   constructor(private readonly prisma: PrismaService) { }
 
-  // --- DEPOLAR ---
+  // --- DEPOLAR LİSTESİ ---
   @Get('warehouses')
   async getWarehouses(@Request() req) {
     let whereClause: any = { tenantId: req.user.tenantId };
 
-    // Personel veya Şube Müdürü ise sadece kendi şubesini görür
     if (req.user.role !== 'ADMIN' && req.user.role !== 'SUPER_ADMIN') {
       const user = await this.prisma.user.findUnique({ where: { id: req.user.userId } });
       if (user && user.branchId) whereClause.branchId = user.branchId;
@@ -24,12 +23,57 @@ export class SettingsController {
     });
   }
 
+  // --- YENİ: DEPO DETAY ANALİZİ ---
+  @Get('warehouses/:id/details')
+  async getWarehouseDetails(@Param('id') id: string, @Request() req) {
+    const warehouse = await this.prisma.warehouse.findUnique({
+      where: { id },
+      include: { branch: true }
+    });
+
+    if (!warehouse) throw new BadRequestException("Depo bulunamadı.");
+
+    // Bu depodaki ürünleri çek
+    const products = await this.prisma.product.findMany({
+      where: { warehouseId: id },
+      include: { supplier: true }
+    });
+
+    // Analiz Yap
+    const totalProducts = products.length;
+    const totalStock = products.reduce((acc, p) => acc + p.currentStock, 0);
+    const totalValue = products.reduce((acc, p) => acc + (p.currentStock * p.buyingPrice), 0);
+
+    // Kritik Stoklar
+    const criticalProducts = products.filter(p => p.currentStock <= p.minStock);
+
+    // Stoksuz Ürünler (Tükenenler)
+    const outOfStockProducts = products.filter(p => p.currentStock === 0);
+
+    return {
+      info: warehouse,
+      stats: {
+        totalProducts,
+        totalStock,
+        totalValue,
+        criticalCount: criticalProducts.length,
+        outOfStockCount: outOfStockProducts.length
+      },
+      criticalList: criticalProducts.map(p => ({
+        id: p.id,
+        name: p.name,
+        sku: p.sku,
+        stock: p.currentStock,
+        min: p.minStock,
+        supplier: p.supplier?.name || '-'
+      }))
+    };
+  }
+
   @Post('warehouses')
   async createWarehouse(@Body() data: { name: string, location?: string, branchId?: string, departments?: string[] }, @Request() req) {
-    // 1. Yetki
     if (req.user.role !== 'ADMIN' && req.user.role !== 'SUPER_ADMIN') throw new UnauthorizedException('Yetkiniz yok.');
 
-    // 2. SAAS LİMİT KONTROLÜ
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: req.user.tenantId },
       include: { plan: true, _count: { select: { warehouses: true } } }
