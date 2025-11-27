@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import {
     AlertTriangle, TrendingUp, Wallet, Building2,
     Clock, Truck, ArrowRight, X, RotateCcw, ShoppingCart,
-    ArrowDownRight, ArrowUpRight, Package, Plus, AlertCircle
+    ArrowDownRight, ArrowUpRight, Package, Plus, Sun, Moon, Sunrise, AlertCircle
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from 'recharts';
 import { toast } from 'sonner';
@@ -37,17 +37,32 @@ export default function DashboardPage() {
     const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
     // --- ULTRA PREMIUM LIQUID GLASS STİLİ ---
-    const GLASS_WIDGET_STYLE = "bg-white/10 backdrop-blur-3xl border border-white/20 shadow-xl rounded-[24px] transition-colors duration-500 h-full flex flex-col relative group overflow-hidden ring-1 ring-white/10 cursor-pointer hover:bg-white/15 hover:shadow-2xl hover:border-white/30";
+    const GLASS_WIDGET_STYLE = "bg-white/20 backdrop-blur-xl border border-white/30 shadow-[0_8px_32px_0_rgba(31,38,135,0.05)] rounded-[24px] hover:bg-white/30 transition-all duration-500 h-full flex flex-col relative group overflow-hidden ring-1 ring-white/20 cursor-pointer hover:shadow-[0_8px_32px_0_rgba(31,38,135,0.15)] hover:border-white/50";
 
     const GLASS_POPUP_STYLE = "bg-white/85 backdrop-blur-[60px] border border-white/40 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] rounded-[32px] ring-1 ring-white/60";
 
-    // Animasyon Ayarları (Daha yumuşak yay efekti)
+    // Animasyon Ayarları
     const SPRING_TRANSITION = {
         type: "spring" as const,
         stiffness: 300,
         damping: 30,
         mass: 0.8
     };
+
+    const HOVER_ANIMATION = {
+        y: -5,
+        scale: 1.01,
+        transition: { type: "spring" as const, stiffness: 400, damping: 25 }
+    };
+
+    // --- SAATE GÖRE SELAMLAMA ---
+    const getGreeting = () => {
+        const hour = new Date().getHours();
+        if (hour < 12) return { text: 'Günaydın', icon: <Sunrise className="text-orange-400" size={28} />, sub: 'Güne enerjik başlama zamanı.' };
+        if (hour < 18) return { text: 'Tünaydın', icon: <Sun className="text-yellow-500" size={28} />, sub: 'İşler yolunda gidiyor mu?' };
+        return { text: 'İyi Akşamlar', icon: <Moon className="text-indigo-400" size={28} />, sub: 'Günü harika kapattınız.' };
+    };
+    const greeting = getGreeting();
 
     // Scroll Kilitleme
     useEffect(() => {
@@ -63,6 +78,13 @@ export default function DashboardPage() {
             return () => clearTimeout(timer);
         }
     }, [expandedId]);
+
+    useEffect(() => {
+        return () => {
+            document.body.style.paddingRight = '';
+            document.body.style.overflow = '';
+        };
+    }, []);
 
     useEffect(() => {
         setIsMounted(true);
@@ -92,6 +114,10 @@ export default function DashboardPage() {
     };
 
     const handleQuickRequest = async (productId: string, productName: string) => {
+        if (requestQty <= 0) {
+            toast.warning("Lütfen geçerli bir miktar giriniz.");
+            return;
+        }
         try {
             await api.post('/requests', { productId, quantity: requestQty, reason: 'Kritik Stok', type: 'PURCHASE' });
             toast.success(`${productName} için talep oluşturuldu.`);
@@ -130,7 +156,7 @@ export default function DashboardPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                             <div className="bg-blue-50/50 border border-blue-100 p-6 rounded-3xl shadow-sm backdrop-blur-md">
                                 <div className="text-sm text-blue-600 font-medium uppercase tracking-wider mb-2">Toplam Tutar</div>
-                                <div className="text-5xl font-bold text-blue-700 tracking-tighter">{(stats.kpi?.totalValue || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 })}</div>
+                                <div className="text-5xl font-bold text-blue-700 tracking-tighter tabular-nums">{(stats.kpi?.totalValue || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 })}</div>
                             </div>
                             <div className="bg-slate-50/50 border border-slate-100 p-6 rounded-3xl shadow-sm backdrop-blur-md">
                                 <div className="text-sm text-slate-500 font-medium uppercase tracking-wider mb-2">En Değerli Kategori</div>
@@ -139,8 +165,8 @@ export default function DashboardPage() {
                         </div>
                         <div className="flex-1 overflow-auto rounded-3xl border border-slate-200/50 bg-white/40 backdrop-blur-md p-2">
                             <Table>
-                                <TableHeader className="bg-white/40 sticky top-0 z-10"><TableRow><TableHead className="text-slate-700 font-bold">Kategori</TableHead><TableHead className="text-right text-slate-700 font-bold">Değer</TableHead></TableRow></TableHeader>
-                                <TableBody>{stats?.pieChartData?.map((cat: any, i: number) => (<TableRow key={i} className="hover:bg-white/50 border-white/20"><TableCell><div className="flex items-center gap-3"><div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: COLORS[i % COLORS.length] }}></div><span className="font-medium text-slate-700">{cat.name}</span></div></TableCell><TableCell className="text-right font-bold text-slate-600">{cat.value.toLocaleString()} ₺</TableCell></TableRow>))}</TableBody>
+                                <TableHeader className="bg-white/40 sticky top-0 z-10 backdrop-blur-md"><TableRow><TableHead className="text-slate-700 font-bold">Kategori</TableHead><TableHead className="text-right text-slate-700 font-bold">Değer</TableHead></TableRow></TableHeader>
+                                <TableBody>{stats?.pieChartData?.map((cat: any, i: number) => (<TableRow key={i} className="hover:bg-white/50 border-white/20"><TableCell><div className="flex items-center gap-3"><div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: COLORS[i % COLORS.length] }}></div><span className="font-medium text-slate-700">{cat.name}</span></div></TableCell><TableCell className="text-right font-bold text-slate-600 tabular-nums">{cat.value.toLocaleString()} ₺</TableCell></TableRow>))}</TableBody>
                             </Table>
                         </div>
                     </div>
@@ -152,7 +178,7 @@ export default function DashboardPage() {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                             <div className="bg-purple-50/50 border border-purple-100 p-6 rounded-3xl flex flex-col justify-center">
                                 <div className="text-sm text-purple-600 font-medium uppercase tracking-wide">Toplam SKU</div>
-                                <div className="text-4xl font-bold text-purple-800 tracking-tighter">{stats.kpi?.totalProducts}</div>
+                                <div className="text-4xl font-bold text-purple-800 tracking-tighter tabular-nums">{stats.kpi?.totalProducts}</div>
                             </div>
                             <div className="md:col-span-2 bg-slate-50/50 border border-slate-100 p-6 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-4">
                                 <div>
@@ -167,8 +193,8 @@ export default function DashboardPage() {
                         </div>
                         <div className="flex-1 overflow-auto rounded-3xl border border-slate-200/50 bg-white/40 backdrop-blur-md p-2">
                             <Table>
-                                <TableHeader className="bg-white/40 sticky top-0 z-10"><TableRow><TableHead className="text-slate-700 font-bold">Kategori</TableHead><TableHead className="text-right text-slate-700 font-bold">Stok Değeri</TableHead></TableRow></TableHeader>
-                                <TableBody>{stats?.pieChartData?.map((cat: any, i: number) => (<TableRow key={i} className="hover:bg-white/50 border-white/20"><TableCell><div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }}></div>{cat.name}</div></TableCell><TableCell className="text-right font-mono">{cat.value.toLocaleString()} ₺</TableCell></TableRow>))}</TableBody>
+                                <TableHeader className="bg-white/40 sticky top-0 z-10 backdrop-blur-md"><TableRow><TableHead className="text-slate-700 font-bold">Kategori</TableHead><TableHead className="text-right text-slate-700 font-bold">Stok Değeri</TableHead></TableRow></TableHeader>
+                                <TableBody>{stats?.pieChartData?.map((cat: any, i: number) => (<TableRow key={i} className="hover:bg-white/50 border-white/20"><TableCell><div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }}></div>{cat.name}</div></TableCell><TableCell className="text-right font-mono tabular-nums">{cat.value.toLocaleString()} ₺</TableCell></TableRow>))}</TableBody>
                             </Table>
                         </div>
                     </div>
@@ -176,20 +202,25 @@ export default function DashboardPage() {
             case 'CRITICAL':
                 return (
                     <div className="p-8 h-full flex flex-col">
-                        <h3 className="text-2xl font-bold mb-6 text-slate-800 flex items-center gap-3"><AlertTriangle className="text-red-600" /> Kritik Stok Uyarısı</h3>
+                        <h3 className="text-2xl font-bold mb-6 text-slate-900 flex items-center gap-3"><AlertTriangle className="text-red-600" /> Kritik Stok Uyarısı</h3>
                         <div className="flex-1 overflow-auto rounded-3xl border border-red-200/40 bg-red-50/20 backdrop-blur-md p-1">
                             <Table>
-                                <TableHeader className="bg-red-100/30 sticky top-0 z-10"><TableRow className="border-red-100/20"><TableHead className="text-red-900 font-bold">Ürün</TableHead><TableHead className="text-red-900 font-bold">Stok</TableHead><TableHead className="text-red-900 font-bold">Min</TableHead><TableHead className="text-red-900 font-bold">Tedarikçi</TableHead><TableHead className="text-right text-red-900 font-bold">Hızlı Sipariş</TableHead></TableRow></TableHeader>
+                                <TableHeader className="bg-red-100/30 sticky top-0 z-10 backdrop-blur-md"><TableRow className="border-red-100/20"><TableHead className="text-red-900 font-bold">Ürün</TableHead><TableHead className="text-red-900 font-bold">Stok</TableHead><TableHead className="text-red-900 font-bold">Min</TableHead><TableHead className="text-red-900 font-bold">Tedarikçi</TableHead><TableHead className="text-right text-red-900 font-bold">Hızlı Sipariş</TableHead></TableRow></TableHeader>
                                 <TableBody>
                                     {stats?.lists?.lowStockProducts?.map((p: any) => (
                                         <TableRow key={p.id} className="hover:bg-red-100/30 border-red-100/20">
                                             <TableCell className="font-medium text-slate-800">{p.name}</TableCell>
-                                            <TableCell className="text-red-600 font-bold text-lg">{p.currentStock}</TableCell>
-                                            <TableCell className="text-slate-600 font-medium">{p.minStock}</TableCell>
+                                            <TableCell className="text-red-600 font-bold text-lg tabular-nums">{p.currentStock}</TableCell>
+                                            <TableCell className="text-slate-600 font-medium tabular-nums">{p.minStock}</TableCell>
                                             <TableCell className="text-sm text-slate-500">{p.supplier?.name || '-'}</TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex items-center justify-end gap-2">
-                                                    <Input type="number" className="w-20 h-8 text-sm bg-white/60 border-red-200 focus:ring-red-200 backdrop-blur-sm" value={requestQty} onChange={e => setRequestQty(Number(e.target.value))} />
+                                                    <Input
+                                                        type="number"
+                                                        className="w-20 h-8 text-sm bg-white/50 border-red-200 focus:ring-2 focus:ring-red-200/50 backdrop-blur-sm transition-all"
+                                                        value={requestQty}
+                                                        onChange={e => setRequestQty(Number(e.target.value))}
+                                                    />
                                                     <Button size="sm" className="h-8 bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-200/50 rounded-lg backdrop-blur-sm" onClick={() => handleQuickRequest(p.id, p.name)}><ShoppingCart size={14} className="mr-2" /> Talep Et</Button>
                                                 </div>
                                             </TableCell>
@@ -203,7 +234,7 @@ export default function DashboardPage() {
             case 'PENDING':
                 return (
                     <div className="p-8 h-full flex flex-col">
-                        <h3 className="text-2xl font-bold mb-6 text-slate-800 flex items-center gap-3"><Clock className="text-orange-600" /> İşlem Merkezi</h3>
+                        <h3 className="text-2xl font-bold mb-6 text-slate-900 flex items-center gap-3"><Clock className="text-orange-600" /> İşlem Merkezi</h3>
                         <div className="grid md:grid-cols-2 gap-6 h-full overflow-hidden">
                             <div className="flex flex-col overflow-hidden bg-white/30 rounded-3xl border border-white/40 shadow-sm backdrop-blur-md">
                                 <div className="p-5 bg-white/40 border-b border-white/20 flex justify-between items-center">
@@ -215,7 +246,7 @@ export default function DashboardPage() {
                                         stats.lists.pendingRequests.map((r: any) => (
                                             <div key={r.id} className="bg-white/60 p-4 rounded-2xl border border-white/40 shadow-sm flex justify-between items-center hover:scale-[1.02] transition-transform cursor-pointer">
                                                 <div><div className="font-bold text-slate-800">{r.product.name}</div><div className="text-xs text-slate-600 mt-0.5">{r.requester.fullName}</div></div>
-                                                <Badge variant="secondary" className="bg-slate-200/50 text-slate-700 font-mono text-sm px-3 py-1 border border-white/40">{r.quantity}</Badge>
+                                                <Badge variant="secondary" className="bg-slate-200/50 text-slate-700 font-mono text-sm px-3 py-1 border border-white/40 tabular-nums">{r.quantity}</Badge>
                                             </div>
                                         ))
                                     )}
@@ -246,53 +277,78 @@ export default function DashboardPage() {
 
     return (
         <AppLayout>
+            {/* --- AMBIENT BACKGROUND --- */}
+            <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none bg-slate-50">
+                {/* Hareketli Gradient Blobları */}
+                <motion.div
+                    animate={{
+                        scale: [1, 1.1, 1],
+                        rotate: [0, 10, -10, 0],
+                        x: [0, 50, -50, 0],
+                        y: [0, 30, -30, 0]
+                    }}
+                    transition={{ duration: 20, repeat: Infinity, repeatType: "reverse" }}
+                    className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-blue-400/10 blur-[120px]"
+                />
+                <motion.div
+                    animate={{
+                        scale: [1, 1.2, 1],
+                        rotate: [0, -15, 15, 0],
+                        x: [0, -60, 60, 0],
+                        y: [0, -40, 40, 0]
+                    }}
+                    transition={{ duration: 25, repeat: Infinity, repeatType: "reverse" }}
+                    className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-purple-400/10 blur-[120px]"
+                />
+            </div>
+
+            <AnimatePresence>
+                {expandedId && (
+                    <>
+                        {/* Perde */}
+                        <motion.div
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}
+                            className="fixed inset-0 bg-slate-900/20 backdrop-blur-[4px] z-[60]"
+                            onClick={() => setExpandedId(null)}
+                        />
+                        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 sm:p-8 pointer-events-none">
+                            <motion.div
+                                layoutId={expandedId}
+                                className={`w-full max-w-6xl h-auto max-h-[85vh] pointer-events-auto overflow-hidden relative flex flex-col ${GLASS_POPUP_STYLE}`}
+                                transition={SPRING_TRANSITION}
+                            >
+                                <button onClick={() => setExpandedId(null)} className="absolute top-6 right-6 z-50 p-2.5 bg-white/40 hover:bg-white rounded-full transition-all shadow-sm hover:shadow-md group border border-white/20 backdrop-blur-md">
+                                    <X size={24} className="text-slate-500 group-hover:text-slate-800" />
+                                </button>
+
+                                <div className="flex-1 overflow-hidden">
+                                    {renderExpandedContent(expandedId)}
+                                </div>
+                            </motion.div>
+                        </div>
+                    </>
+                )}
+            </AnimatePresence>
 
             <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
                 <div>
-                    <h1 className="text-4xl font-bold tracking-tight text-slate-900 drop-shadow-sm">Genel Bakış</h1>
-                    <p className="text-base text-slate-500 mt-1 font-medium">İşletmenizin canlı nabzı.</p>
+                    <div className="flex items-center gap-2 mb-1">
+                        <span className="text-2xl">{greeting.icon}</span>
+                        <h1 className="text-4xl font-bold tracking-tight text-slate-900 drop-shadow-sm">{greeting.text}, {user?.fullName.split(' ')[0]}</h1>
+                    </div>
+                    <p className="text-base text-slate-500 font-medium ml-9">{greeting.sub}</p>
                 </div>
 
-                <AnimatePresence>
-                    {expandedId && (
-                        <>
-                            <motion.div
-                                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}
-                                className="fixed inset-0 bg-slate-900/30 backdrop-blur-[3px] z-[60]"
-                                onClick={() => setExpandedId(null)}
-                            />
-                            <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 sm:p-8 pointer-events-none">
-                                <motion.div
-                                    layoutId={expandedId} // Morphing animasyonu için ID
-                                    className={`w-full max-w-6xl h-auto max-h-[85vh] pointer-events-auto overflow-hidden relative flex flex-col ${GLASS_POPUP_STYLE}`}
-                                    transition={SPRING_TRANSITION}
-                                >
-                                    <button onClick={() => setExpandedId(null)} className="absolute top-6 right-6 z-50 p-2.5 bg-white/40 hover:bg-white rounded-full transition-all shadow-sm hover:shadow-md group border border-white/20 backdrop-blur-md">
-                                        <X size={24} className="text-slate-500 group-hover:text-slate-800" />
-                                    </button>
-
-                                    {/* İÇERİK ANİMASYONU: İçerik, kutu büyüdükten sonra nazikçe belirir */}
-                                    <motion.div
-                                        className="flex-1 overflow-hidden"
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: 0.15, duration: 0.4 }}
-                                    >
-                                        {renderExpandedContent(expandedId)}
-                                    </motion.div>
-                                </motion.div>
-                            </div>
-                        </>
-                    )}
-                </AnimatePresence>
-
                 <div className="flex items-center gap-2 flex-wrap">
+                    <Button variant="outline" size="sm" onClick={resetLayout} className="h-10 bg-white/50 hover:bg-white border-slate-200 text-slate-600 shadow-sm backdrop-blur rounded-xl">
+                        <RotateCcw className="mr-2 h-3.5 w-3.5" /> Yenile
+                    </Button>
 
                     {(user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') && (
                         <div className="flex items-center gap-2 bg-white/40 backdrop-blur-xl p-1.5 rounded-2xl border border-white/50 shadow-sm z-20">
-                            <Building2 size={18} className="text-slate-500 ml-2" />
+                            <Building2 size={18} className="text-slate-400 ml-2" />
                             <Select value={selectedBranch} onValueChange={setSelectedBranch}>
-                                <SelectTrigger className="w-[220px] border-none shadow-none h-10 focus:ring-0 bg-transparent font-semibold text-slate-700"><SelectValue placeholder="Tüm Şubeler" /></SelectTrigger>
+                                <SelectTrigger className="w-[200px] border-none shadow-none h-10 focus:ring-0 bg-transparent font-semibold text-slate-700"><SelectValue placeholder="Tüm Şubeler" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="ALL">Tüm Şirket</SelectItem>
                                     {branches.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
@@ -307,75 +363,47 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
 
                 {/* KPI 1: Toplam Değer */}
-                <div className="h-40 cursor-pointer group">
-                    <motion.div
-                        layoutId="VALUE"
-                        onClick={() => openDetailModal('VALUE')}
-                        className={`h-full border-l-[6px] border-l-blue-500 overflow-hidden relative ${GLASS_WIDGET_STYLE} justify-center`}
-                        transition={SPRING_TRANSITION}
-                    >
-                        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-                        <CardHeader className="pb-2"><CardTitle className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"><Wallet size={16} className="text-blue-500" /> Toplam Değer</CardTitle></CardHeader>
-                        <CardContent>
-                            <div className="text-3xl font-bold text-slate-900 tracking-tight">{(stats.kpi?.totalValue || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 })}</div>
-                            <p className="text-xs text-blue-600 mt-3 flex items-center gap-1 font-bold opacity-60 group-hover:opacity-100 transition-all translate-x-0 group-hover:translate-x-1">Detayları İncele <ArrowRight size={10} /></p>
-                        </CardContent>
-                    </motion.div>
-                </div>
+                <motion.div layoutId="VALUE" className={`h-40 cursor-pointer group relative border-l-[6px] border-l-blue-500 ${GLASS_WIDGET_STYLE}`} onClick={() => openDetailModal('VALUE')} whileHover={HOVER_ANIMATION}>
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                    <CardHeader className="pb-2"><CardTitle className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"><Wallet size={16} className="text-blue-500" /> Toplam Değer</CardTitle></CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-bold text-slate-900 tracking-tight tabular-nums">{(stats.kpi?.totalValue || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 })}</div>
+                        <p className="text-xs text-blue-600 mt-3 flex items-center gap-1 font-bold opacity-60 group-hover:opacity-100 transition-all translate-x-0 group-hover:translate-x-1">Detayları İncele <ArrowRight size={10} /></p>
+                    </CardContent>
+                </motion.div>
 
                 {/* KPI 2: Aktif Ürünler (POPUP OLARAK AÇILIR) */}
-                <div className="h-40 cursor-pointer group">
-                    <motion.div
-                        layoutId="PRODUCTS"
-                        onClick={() => openDetailModal('PRODUCTS')}
-                        className={`h-full border-l-[6px] border-l-purple-500 overflow-hidden ${GLASS_WIDGET_STYLE} justify-center`}
-                        transition={SPRING_TRANSITION}
-                    >
-                        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-                        <CardHeader className="pb-2"><CardTitle className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"><Package size={16} className="text-purple-500" /> Aktif Ürün</CardTitle></CardHeader>
-                        <CardContent>
-                            <div className="text-3xl font-bold text-slate-900 tracking-tight">{stats.kpi?.totalProducts || 0} <span className="text-sm font-normal text-slate-400">SKU</span></div>
-                            <p className="text-xs text-purple-600 mt-3 flex items-center gap-1 font-bold opacity-60 group-hover:opacity-100 transition-all translate-x-0 group-hover:translate-x-1">Yönetim Paneli <ArrowRight size={10} /></p>
-                        </CardContent>
-                    </motion.div>
-                </div>
+                <motion.div layoutId="PRODUCTS" className={`h-40 cursor-pointer group relative border-l-[6px] border-l-purple-500 ${GLASS_WIDGET_STYLE}`} onClick={() => openDetailModal('PRODUCTS')} whileHover={HOVER_ANIMATION}>
+                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                    <CardHeader className="pb-2"><CardTitle className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"><Package size={16} className="text-purple-500" /> Aktif Ürün</CardTitle></CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-bold text-slate-900 tracking-tight tabular-nums">{stats.kpi?.totalProducts || 0} <span className="text-sm font-normal text-slate-400">SKU</span></div>
+                        <p className="text-xs text-purple-600 mt-3 flex items-center gap-1 font-bold opacity-60 group-hover:opacity-100 transition-all translate-x-0 group-hover:translate-x-1">Yönetim Paneli <ArrowRight size={10} /></p>
+                    </CardContent>
+                </motion.div>
 
                 {/* KPI 3: Bekleyen İşler */}
-                <div className="h-40 cursor-pointer group">
-                    <motion.div
-                        layoutId="PENDING"
-                        onClick={() => openDetailModal('PENDING')}
-                        className={`h-full border-l-[6px] border-l-orange-500 overflow-hidden ${GLASS_WIDGET_STYLE} justify-center`}
-                        transition={SPRING_TRANSITION}
-                    >
-                        <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-                        <CardHeader className="pb-2"><CardTitle className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"><Clock size={16} className="text-orange-500" /> Bekleyen</CardTitle></CardHeader>
-                        <CardContent>
-                            <div className="text-3xl font-bold text-slate-900 tracking-tight">{(stats.kpi?.pendingRequestCount || 0) + (stats.kpi?.incomingOrderCount || 0)}</div>
-                            <p className="text-xs text-orange-600 mt-3 flex items-center gap-1 font-bold opacity-60 group-hover:opacity-100 transition-all translate-x-0 group-hover:translate-x-1">Hemen İncele <ArrowRight size={10} /></p>
-                        </CardContent>
-                    </motion.div>
-                </div>
+                <motion.div layoutId="PENDING" className={`h-40 cursor-pointer group relative border-l-[6px] border-l-orange-500 ${GLASS_WIDGET_STYLE}`} onClick={() => openDetailModal('PENDING')} whileHover={HOVER_ANIMATION}>
+                    <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                    <CardHeader className="pb-2"><CardTitle className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"><Clock size={16} className="text-orange-500" /> Bekleyen</CardTitle></CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-bold text-slate-900 tracking-tight tabular-nums">{(stats.kpi?.pendingRequestCount || 0) + (stats.kpi?.incomingOrderCount || 0)}</div>
+                        <p className="text-xs text-orange-600 mt-3 flex items-center gap-1 font-bold opacity-60 group-hover:opacity-100 transition-all translate-x-0 group-hover:translate-x-1">Hemen İncele <ArrowRight size={10} /></p>
+                    </CardContent>
+                </motion.div>
 
                 {/* KPI 4: Kritik Stok */}
-                <div className="h-40 cursor-pointer group">
-                    <motion.div
-                        layoutId="CRITICAL"
-                        onClick={() => openDetailModal('CRITICAL')}
-                        className={`h-full border-l-[6px] overflow-hidden ${GLASS_WIDGET_STYLE} ${stats.kpi?.criticalCount > 0 ? 'border-l-red-500 bg-red-50/10' : 'border-l-green-500'} justify-center`}
-                        transition={SPRING_TRANSITION}
-                    >
-                        <div className={`absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none ${stats.kpi?.criticalCount > 0 ? 'from-red-500/10' : 'from-green-500/10'}`} />
-                        <CardHeader className="pb-2"><CardTitle className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"><AlertTriangle size={16} className={stats.kpi?.criticalCount > 0 ? "text-red-500" : "text-green-500"} /> Kritik Stok</CardTitle></CardHeader>
-                        <CardContent>
-                            <div className={`text-3xl font-bold tracking-tight ${stats.kpi?.criticalCount > 0 ? 'text-red-600' : 'text-slate-900'}`}>{stats.kpi?.criticalCount || 0}</div>
-                            {stats.kpi?.criticalCount > 0 ?
-                                <p className="text-xs text-red-600 mt-3 flex items-center gap-1 font-bold opacity-60 group-hover:opacity-100 transition-all translate-x-0 group-hover:translate-x-1">Aksiyon Al <ArrowRight size={10} /></p> :
-                                <p className="text-xs text-green-600 mt-3 font-bold opacity-60">Stoklar güvende</p>
-                            }
-                        </CardContent>
-                    </motion.div>
-                </div>
+                <motion.div layoutId="CRITICAL" className={`h-40 cursor-pointer group relative border-l-[6px] ${GLASS_WIDGET_STYLE} ${stats.kpi?.criticalCount > 0 ? 'border-l-red-500 bg-red-50/10' : 'border-l-green-500'}`} onClick={() => openDetailModal('CRITICAL')} whileHover={HOVER_ANIMATION}>
+                    <div className={`absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none ${stats.kpi?.criticalCount > 0 ? 'from-red-500/10' : 'from-green-500/10'}`} />
+                    <CardHeader className="pb-2"><CardTitle className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"><AlertTriangle size={16} className={stats.kpi?.criticalCount > 0 ? "text-red-500" : "text-green-500"} /> Kritik Stok</CardTitle></CardHeader>
+                    <CardContent>
+                        <div className={`text-3xl font-bold tracking-tight tabular-nums ${stats.kpi?.criticalCount > 0 ? 'text-red-600' : 'text-slate-900'}`}>{stats.kpi?.criticalCount || 0}</div>
+                        {stats.kpi?.criticalCount > 0 ?
+                            <p className="text-xs text-red-600 mt-3 flex items-center gap-1 font-bold opacity-60 group-hover:opacity-100 transition-all translate-x-0 group-hover:translate-x-1">Aksiyon Al <ArrowRight size={10} /></p> :
+                            <p className="text-xs text-green-600 mt-3 font-bold opacity-60">Stoklar güvende</p>
+                        }
+                    </CardContent>
+                </motion.div>
             </div>
 
             {/* 2. SATIR: GRAFİKLER */}
@@ -405,12 +433,12 @@ export default function DashboardPage() {
                         <div className="flex-1 w-full min-h-0">
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
-                                    <Pie data={stats?.pieChartData || []} cx="50%" cy="50%" innerRadius={40} outerRadius={65} paddingAngle={5} dataKey="value" stroke="none">
+                                    <Pie data={stats?.pieChartData || []} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={6} dataKey="value" stroke="none">
                                         {(stats.pieChartData || []).map((entry: any, index: number) => (
                                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                         ))}
                                     </Pie>
-                                    <Tooltip formatter={(value: number) => `${value.toLocaleString()} ₺`} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', backgroundColor: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(8px)', fontSize: '12px' }} />
+                                    <Tooltip formatter={(value: number) => `${value.toLocaleString()} ₺`} contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px -5px rgba(0, 0, 0, 0.1)', backgroundColor: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(8px)', fontSize: '12px' }} />
                                     <Legend layout="horizontal" verticalAlign="bottom" align="center" iconSize={10} wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }} />
                                 </PieChart>
                             </ResponsiveContainer>
@@ -432,7 +460,7 @@ export default function DashboardPage() {
                                     stats.recentActivity.map((tx: any, i: number) => (
                                         <TableRow key={i} className="hover:bg-blue-50/30 border-b border-white/10 transition-colors">
                                             <TableCell className="py-4 pl-6">
-                                                <div className="flex flex-col"><span className="font-bold text-sm text-slate-800 truncate max-w-[150px]">{tx.product}</span><span className="text-[10px] text-slate-400">{new Date(tx.time).toLocaleDateString('tr-TR')}</span></div>
+                                                <div className="flex flex-col"><span className="font-bold text-sm text-slate-800 truncate max-w-[150px]">{tx.product}</span><span className="text-[11px] text-slate-500 font-medium">{new Date(tx.time).toLocaleDateString('tr-TR')}</span></div>
                                             </TableCell>
                                             <TableCell className="text-right py-4 pr-6">
                                                 <Badge variant={tx.action === 'Giriş' ? 'default' : 'destructive'} className={`text-[10px] px-2.5 py-1 font-bold shadow-sm border-0 ${tx.action === 'Giriş' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>

@@ -7,10 +7,14 @@ export class DashboardService {
 
   // Varsayılan Dashboard Düzeni
   private readonly DEFAULT_LAYOUT = [
-    { i: 'kpi-cards', x: 0, y: 0, w: 12, h: 4, hidden: false },
-    { i: 'chart-main', x: 0, y: 4, w: 8, h: 10, hidden: false },
-    { i: 'chart-pie', x: 8, y: 4, w: 4, h: 10, hidden: false },
-    { i: 'recent-transactions', x: 0, y: 14, w: 12, h: 8, hidden: false }
+    { i: 'kpi-1', x: 0, y: 0, w: 3, h: 4, minW: 2, minH: 3 },
+    { i: 'kpi-2', x: 3, y: 0, w: 3, h: 4, minW: 2, minH: 3 },
+    { i: 'kpi-3', x: 6, y: 0, w: 3, h: 4, minW: 2, minH: 3 },
+    { i: 'kpi-4', x: 9, y: 0, w: 3, h: 4, minW: 2, minH: 3 },
+    { i: 'chart-bar', x: 0, y: 4, w: 8, h: 11, minW: 4, minH: 8 },
+    { i: 'chart-pie', x: 8, y: 4, w: 4, h: 11, minW: 3, minH: 8 },
+    { i: 'transactions', x: 0, y: 15, w: 6, h: 10, minW: 4, minH: 6 },
+    { i: 'incoming', x: 6, y: 15, w: 6, h: 10, minW: 4, minH: 6 },
   ];
 
   async getStats(tenantId: string, branchId?: string, startDate?: string, endDate?: string) {
@@ -23,26 +27,31 @@ export class DashboardService {
     let productWhere: any = { tenantId, deletedAt: null };
     let transactionWhere: any = { tenantId };
     let requestWhere: any = { tenantId };
-    let orderWhere: any = { tenantId };
+    let orderWhere: any = { tenantId }; // Siparişler genelde merkezi olur ama şube bazlı da bakılabilir
 
     if (branchId && branchId !== 'ALL') {
       productWhere.warehouse = { branchId };
+      // İşlemler: O şubeye ait depolardaki hareketler
       transactionWhere.product = { warehouse: { branchId } };
       requestWhere.branchId = branchId;
+      // Siparişler için özel bir şube filtresi yoksa tenant bazlı kalabilir veya user'a göre filtrelenebilir
     }
 
     // 1. PARALEL VERİ ÇEKME
     const [
       totalProducts,
       lowStockProducts,
-      transactions,
+      transactions, // Grafik için tüm liste
       pendingRequests,
       incomingOrders,
       overduePayments,
-      upcomingPayments
+      upcomingPayments,
+      recentActivity // Tablo için son 5 işlem
     ] = await Promise.all([
+      // A. Toplam Ürün Sayısı
       this.prisma.product.count({ where: productWhere }),
 
+      // B. Kritik Stoktaki Ürünler
       this.prisma.product.findMany({
         where: { ...productWhere, currentStock: { lte: this.prisma.product.fields.minStock } },
         take: 5,
@@ -50,46 +59,52 @@ export class DashboardService {
         include: { supplier: true }
       }),
 
+      // C. İşlemler (Grafik İçin - Tarih filtresi varsa uygula)
       this.prisma.transaction.findMany({
-        where: transactionWhere,
+        where: {
+          ...transactionWhere,
+          ...(startDate && endDate ? { createdAt: { gte: new Date(startDate), lte: new Date(new Date(endDate).setHours(23, 59, 59)) } } : {})
+        },
         orderBy: { createdAt: 'desc' },
-        take: 100
+        // Grafik için çok veri gerekebilir, limit koymuyoruz veya mantıklı bir limit (örn 1000)
       }),
 
+      // D. Bekleyen Talepler
       this.prisma.procurementRequest.findMany({
         where: { ...requestWhere, status: 'PENDING' },
         take: 5,
-        include: { product: true, requester: true }
+        include: { product: true, requester: true },
+        orderBy: { createdAt: 'desc' }
       }),
 
+      // E. Bekleyen Mal Kabuller (Siparişler)
       this.prisma.purchaseOrder.findMany({
         where: { ...orderWhere, status: { in: ['ORDERED', 'PARTIAL'] } },
         take: 5,
-        include: { supplier: true }
+        include: { supplier: true },
+        orderBy: { expectedDate: 'asc' } // Tarihi en yakın olan en üstte
       }),
 
+      // F. Gecikmiş Ödemeler
       this.prisma.transaction.findMany({
-        where: {
-          tenantId,
-          type: 'INBOUND',
-          isCash: false,
-          isPaid: false,
-          paymentDate: { lt: today }
-        },
+        where: { tenantId, type: 'INBOUND', isCash: false, isPaid: false, paymentDate: { lt: today } },
         take: 5,
         include: { supplier: true, product: true }
       }),
 
+      // G. Yaklaşan Ödemeler
       this.prisma.transaction.findMany({
-        where: {
-          tenantId,
-          type: 'INBOUND',
-          isCash: false,
-          isPaid: false,
-          paymentDate: { gte: today, lte: nextWeek }
-        },
+        where: { tenantId, type: 'INBOUND', isCash: false, isPaid: false, paymentDate: { gte: today, lte: nextWeek } },
         take: 5,
         include: { supplier: true, product: true }
+      }),
+
+      // H. Son Hareketler (Tablo İçin - Filtreye uygun son 5)
+      this.prisma.transaction.findMany({
+        where: transactionWhere, // <--- DÜZELTME: Artık şube filtresini kullanıyor
+        take: 5,
+        orderBy: { createdAt: 'desc' },
+        include: { product: true, createdBy: true }
       })
     ]);
 
@@ -101,6 +116,7 @@ export class DashboardService {
 
     const totalValue = allProductsForValue.reduce((acc, p) => acc + (p.currentStock * p.buyingPrice), 0);
 
+    // Kategori Dağılımı
     const categoryStats: Record<string, number> = {};
     allProductsForValue.forEach(p => {
       const deptName = p.department?.name || 'Diğer';
@@ -115,6 +131,7 @@ export class DashboardService {
       value: Math.round(categoryStats[key])
     }));
 
+    // Grafik Verisi (transactions dizisinden)
     const chartMap = new Map<string, { date: string, Giris: number, Cikis: number }>();
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
@@ -123,7 +140,11 @@ export class DashboardService {
       chartMap.set(key, { date: key, Giris: 0, Cikis: 0 });
     }
 
-    transactions.forEach(tx => {
+    // Grafik verisi için sadece son 7 güne odaklanabiliriz veya filtrelenmiş transactions verisini kullanabiliriz.
+    // Eğer tarih filtresi yoksa son 7 günü baz alalım.
+    const chartTransactions = startDate ? transactions : transactions.filter(t => new Date(t.createdAt) >= new Date(new Date().setDate(new Date().getDate() - 7)));
+
+    chartTransactions.forEach(tx => {
       const key = new Date(tx.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
       if (chartMap.has(key)) {
         const entry = chartMap.get(key)!;
@@ -148,15 +169,21 @@ export class DashboardService {
         upcomingPayments
       },
       chartData: Array.from(chartMap.values()),
-      pieChartData
+      pieChartData,
+      // Son hareketleri buraya ekliyoruz
+      recentActivity: recentActivity.map(tx => ({
+        action: tx.type === 'INBOUND' ? 'Giriş' : (tx.type === 'WASTAGE' ? 'Zayi' : 'Çıkış'),
+        product: tx.product.name,
+        quantity: tx.quantity,
+        user: tx.createdBy?.fullName || 'Sistem',
+        time: tx.createdAt
+      }))
     };
   }
 
   // --- Dashboard Düzenini Getir ---
   async getUserLayout(userId: string) {
-    const config = await this.prisma.dashboardConfig.findUnique({
-      where: { userId }
-    });
+    const config = await this.prisma.dashboardConfig.findUnique({ where: { userId } });
     return config ? config.layout : this.DEFAULT_LAYOUT;
   }
 
