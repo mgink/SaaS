@@ -1,20 +1,36 @@
 <div align="center">
 
-📦 SaaS Depot ERP
+# 🌊 SaaS Depot ERP
 
-Next-Gen Inventory & Operations Management System
+### ✨ Next-Gen Inventory & Operations Management System
+### 🚀 Yeni Nesil Stok ve Operasyon Yönetim Sistemi
 
-Yeni Nesil Stok ve Operasyon Yönetim Sistemi
+[![Live Demo](https://img.shields.io/badge/🌐_Live_Demo-Visit-blue?style=for-the-badge)](https://depo-frontend-892259824764.us-central1.run.app/)
+[![Backend API](https://img.shields.io/badge/🔌_Backend_API-Active-green?style=for-the-badge)](https://depo-backend-892259824764.us-central1.run.app/)
+[![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
-English | Türkçe
+**[🇬🇧 English](#english)** | **[🇹🇷 Türkçe](#türkçe)**
+
+---
+
+![Liquid Glass UI](https://img.shields.io/badge/UI-Liquid_Glass_Design-blueviolet?style=flat-square)
+![PWA Ready](https://img.shields.io/badge/PWA-Ready-success?style=flat-square)
+![Multi Tenant](https://img.shields.io/badge/Architecture-Multi_Tenant-orange?style=flat-square)
+![Cloud Native](https://img.shields.io/badge/Deployment-Cloud_Native-blue?style=flat-square)
 
 </div>
 
+---
+
 <a name="english"></a>
 
-🇬🇧 English
+## 🇬🇧 English Version
 
-SaaS Depot is a modern, multi-branch ERP system designed specifically for cafe and restaurant chains. It features a stunning "Liquid Glass" UI, financial tracking, advanced procurement cycles, and a mobile-first (PWA) approach to manage operations seamlessly.
+> **SaaS Depot** is a cutting-edge, multi-branch ERP system tailored for **cafe and restaurant chains**. Experience the revolutionary **Liquid Glass UI**, comprehensive financial tracking, intelligent procurement workflows, and a **mobile-first PWA** architecture that transforms how you manage operations.
+
+### 🎯 Why Choose SaaS Depot?
+
+Built with modern cloud-native architecture and deployed on **Google Cloud Run** with **Neon.tech PostgreSQL**, this system delivers enterprise-grade performance with a stunning user experience that feels like a native mobile app.
 
 ✨ Key Features
 
