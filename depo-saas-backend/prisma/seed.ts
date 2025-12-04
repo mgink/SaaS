@@ -11,8 +11,11 @@ async function main() {
 
     await prisma.notification.deleteMany();
     await prisma.transaction.deleteMany();       // Hareketler (Ürüne bağlı)
-    await prisma.procurementRequest.deleteMany(); // <--- EKLENDİ: Talepler (Ürüne bağlı)
-    await prisma.productSupplier.deleteMany();    // <--- EKLENDİ: Ürün-Tedarikçi bağı
+    await prisma.procurementRequest.deleteMany(); // Talepler (Ürüne bağlı)
+    await prisma.purchaseOrderItem.deleteMany();  // Satınalma Sipariş Kalemleri (Ürüne bağlı)
+    await prisma.purchaseOrder.deleteMany();      // Satınalma Siparişleri
+    await prisma.productSupplier.deleteMany();    // Ürün-Tedarikçi bağı
+    await prisma.stockForm.deleteMany();          // ⭐ EKLENDİ: Stok Formları (User'a bağlı)
 
     await prisma.product.deleteMany();            // Ürünler (Artık silinebilir)
 

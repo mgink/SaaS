@@ -10,7 +10,11 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbP
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Menu, Bell, Search, LogOut, Settings } from "lucide-react";
+import {
+    Menu, Bell, Search, LogOut, Settings,
+    LayoutDashboard, Warehouse, Package, ArrowLeftRight,
+    Truck, ClipboardList, GitBranch, Users, Crown, Wallet, LifeBuoy, FileStack, AlertTriangle
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 
@@ -30,6 +34,10 @@ export default function Header({ user }: { user: any }) {
         if (pathname.includes('branches')) return 'Şubeler';
         if (pathname.includes('suppliers')) return 'Tedarikçiler';
         if (pathname.includes('requests')) return 'Talepler';
+        if (pathname.includes('finance')) return 'Finans';
+        if (pathname.includes('stock-forms')) return 'Stok Fişleri';
+        if (pathname.includes('purchase-orders')) return 'Sipariş & Kabul';
+        if (pathname.includes('wastage')) return 'Zayi Takibi';
         return 'Panel';
     }
 
@@ -49,14 +57,85 @@ export default function Header({ user }: { user: any }) {
 
     const getInitials = (name: string) => name ? name.substring(0, 2).toUpperCase() : 'US';
 
+    // --- MOBİL MENÜ MANTIĞI ---
+    const isActive = (path: string) => pathname === path ? "bg-blue-50 text-blue-600 font-medium" : "text-slate-500 hover:text-slate-900 hover:bg-slate-50";
+    const linkClass = "flex items-center gap-3 rounded-lg px-3 py-2 transition-all text-sm";
+
+    const userRole = user?.role;
+    const isSuperAdmin = userRole === 'SUPER_ADMIN';
+    const isAdmin = userRole === 'ADMIN';
+    const isBranchManager = userRole === 'BRANCH_MANAGER';
+    const canSeeManagement = isSuperAdmin || isAdmin || isBranchManager;
+    const canManageBranches = isSuperAdmin || isAdmin;
+
     return (
         <header className="flex h-14 lg:h-[60px] items-center gap-4 border-b border-slate-100 bg-white/70 backdrop-blur-lg px-6 sticky top-0 z-30 shadow-sm">
 
+            {/* MOBİL MENÜ (SHEET) */}
             <Sheet>
                 <SheetTrigger asChild>
                     <Button variant="outline" size="icon" className="shrink-0 md:hidden"><Menu className="h-5 w-5" /><span className="sr-only">Menüyü aç</span></Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="flex flex-col"><div className="text-lg font-bold">SaaS Depo</div></SheetContent>
+                <SheetContent side="left" className="flex flex-col w-72 p-0">
+                    <div className="p-6 border-b border-slate-100">
+                        <div className="text-lg font-bold flex items-center gap-2 text-slate-900">
+                            <div className="bg-blue-600 p-1 rounded-md"><Package className="h-4 w-4 text-white" /></div> SaaS Depo
+                        </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto py-4 px-3">
+                        <nav className="grid gap-1 font-medium">
+                            {/* OPERASYON */}
+                            <div className="pb-4">
+                                <p className="px-3 text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wider">Operasyon</p>
+                                <Link href="/dashboard" className={`${linkClass} ${isActive('/dashboard')}`}><LayoutDashboard className="h-4 w-4" /> Özet Ekranı</Link>
+                                <Link href="/warehouses" className={`${linkClass} ${isActive('/warehouses')}`}><Warehouse className="h-4 w-4" /> Depolarım</Link>
+                                <Link href="/products" className={`${linkClass} ${isActive('/products')}`}><Package className="h-4 w-4" /> Ürün Yönetimi</Link>
+                                <Link href="/transactions" className={`${linkClass} ${isActive('/transactions')}`}><ArrowLeftRight className="h-4 w-4" /> Stok Hareketleri</Link>
+                                <Link href="/stock-forms" className={`${linkClass} ${isActive('/stock-forms')}`}><FileStack className="h-4 w-4" /> Toplu İşlem</Link>
+                                <Link href="/purchase-orders" className={`${linkClass} ${isActive('/purchase-orders')}`}><Truck className="h-4 w-4" /> Sipariş & Kabul</Link>
+                                <Link href="/finance" className={`${linkClass} ${isActive('/finance')}`}><Wallet className="h-4 w-4" /> Finans</Link>
+                                <Link href="/suppliers" className={`${linkClass} ${isActive('/suppliers')}`}><Truck className="h-4 w-4" /> Tedarikçiler</Link>
+                                <Link href="/requests" className={`${linkClass} ${isActive('/requests')}`}><ClipboardList className="h-4 w-4" /> Talepler</Link>
+                                <Link href="/wastage" className={`${linkClass} ${isActive('/wastage')}`}><AlertTriangle className="h-4 w-4" /> Zayi Takibi</Link>
+                            </div>
+
+                            {/* YÖNETİM */}
+                            {canSeeManagement && (
+                                <div className="pb-4">
+                                    <p className="px-3 text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wider">Yönetim</p>
+                                    {canManageBranches && <Link href="/branches" className={`${linkClass} ${isActive('/branches')}`}><GitBranch className="h-4 w-4" /> Şubeler</Link>}
+                                    <Link href="/users" className={`${linkClass} ${isActive('/users')}`}><Users className="h-4 w-4" /> Personel</Link>
+                                    <Link href="/settings" className={`${linkClass} ${isActive('/settings')}`}><Settings className="h-4 w-4" /> Ayarlar</Link>
+                                </div>
+                            )}
+
+                            {/* PLATFORM */}
+                            {isSuperAdmin && (
+                                <div className="pb-4">
+                                    <p className="px-3 text-xs font-semibold text-yellow-600 mb-2 uppercase tracking-wider">Platform Sahibi</p>
+                                    <Link href="/super-admin" className={`${linkClass} ${isActive('/super-admin')}`}><Crown className="h-4 w-4 text-yellow-500" /> Süper Admin</Link>
+                                </div>
+                            )}
+                        </nav>
+                    </div>
+
+                    {/* ALT BİLGİ */}
+                    <div className="p-4 border-t border-slate-100 bg-slate-50">
+                        <div className="flex items-center gap-3 mb-3">
+                            <Avatar className="h-9 w-9 border">
+                                <AvatarFallback className="bg-blue-600 text-white text-xs">{getInitials(user?.fullName)}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 overflow-hidden">
+                                <p className="text-sm font-medium truncate">{user?.fullName}</p>
+                                <p className="text-xs text-slate-500 truncate">{user?.email}</p>
+                            </div>
+                        </div>
+                        <Button variant="outline" size="sm" className="w-full text-red-600 hover:text-red-700 hover:bg-red-50" onClick={handleLogout}>
+                            <LogOut className="mr-2 h-3 w-3" /> Çıkış Yap
+                        </Button>
+                    </div>
+                </SheetContent>
             </Sheet>
 
             <div className="w-full flex-1">
@@ -69,6 +148,7 @@ export default function Header({ user }: { user: any }) {
                 </Breadcrumb>
             </div>
 
+            {/* SAĞ ÜST MENÜ */}
             <div className="flex items-center gap-3">
                 <div className="relative hidden md:block"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="search" placeholder="Hızlı ara..." className="w-64 bg-white/50 pl-9 rounded-full focus-visible:ring-primary" /></div>
 

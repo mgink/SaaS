@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'http://localhost:3000', // Backend adresi
+    baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://depo-backend-892259824764.us-central1.run.app', // Backend adresi
 });
 
 // Her istekten önce çalışır (Request Interceptor)

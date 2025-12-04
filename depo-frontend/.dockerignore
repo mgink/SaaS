@@ -1,0 +1,11 @@
+node_modules
+.next
+.git
+.github
+out
+build
+.env
+.env.local
+Dockerfile
+README.md
+.DS_Store
