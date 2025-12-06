@@ -52,7 +52,7 @@ export default function SuppliersPage() {
     // Frontend tarafında basit filtreleme yapalım.
 
     const filteredSuppliers = filterOverdue
-        ? suppliers.filter(s => {
+        ? suppliers.filter((s: any) => {
             // Burada tedarikçinin gecikmiş borcu olup olmadığını anlamak için detay verisine ihtiyaç var.
             // Listeleme endpointi (findAll) transaction count dönüyor ama detay dönmüyor.
             // Bu yüzden "Vadesi Geçenler" filtresi için finance verisini kullanacağız.

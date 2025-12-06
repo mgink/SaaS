@@ -48,24 +48,7 @@ export default function StockFormsPage() {
         productSku: ''
     });
 
-    const fetchData = async () => {
-        try {
-            const [formRes, prodRes, supRes] = await Promise.all([
-                api.get('/stock-forms'),
-                api.get('/products'),
-                api.get('/suppliers')
-            ]);
-            setForms(formRes.data);
-            setProducts(prodRes.data.filter((p: any) => p.status === 'APPROVED'));
-            setSuppliers(supRes.data);
-        } catch (error) {
-            toast.error("Veriler yüklenemedi.");
-        } finally {
-            setLoading(false);
-        }
-    };
 
-    useEffect(() => { fetchData(); }, []);
 
     // SATIR EKLEME
     const addItem = () => {
@@ -73,7 +56,7 @@ export default function StockFormsPage() {
             toast.warning("Lütfen bir ürün seçin.");
             return;
         }
-        const product = products.find(p => p.id === tempItem.productId);
+        const product = products.find((p: any) => p.id === tempItem.productId);
 
         // Listeye ekle
         setFormData({
@@ -106,7 +89,7 @@ export default function StockFormsPage() {
             setOpen(false);
             // Formu sıfırla
             setFormData({ type: 'INBOUND', supplierId: '', waybillNo: '', waybillDate: '', notes: '', items: [] });
-            fetchData();
+            refetch();
         } catch (e: any) {
             toast.error(e.response?.data?.message || "Hata oluştu.");
         } finally {
@@ -149,7 +132,7 @@ export default function StockFormsPage() {
                                         <Label>Tedarikçi</Label>
                                         <Select value={formData.supplierId} onValueChange={(val) => setFormData({ ...formData, supplierId: val })}>
                                             <SelectTrigger><SelectValue placeholder="Seçiniz..." /></SelectTrigger>
-                                            <SelectContent>{suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                                            <SelectContent>{suppliers.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
                                         </Select>
                                     </div>
                                 )}
@@ -175,7 +158,7 @@ export default function StockFormsPage() {
                                     <Select value={tempItem.productId} onValueChange={(val) => setTempItem({ ...tempItem, productId: val })}>
                                         <SelectTrigger><SelectValue placeholder="Ürün Seç..." /></SelectTrigger>
                                         <SelectContent>
-                                            {products.map(p => (
+                                            {products.map((p: any) => (
                                                 <SelectItem key={p.id} value={p.id}>
                                                     {p.name} <span className="text-slate-400 text-xs">({p.sku}) | Stok: {p.currentStock}</span>
                                                 </SelectItem>
@@ -266,7 +249,7 @@ export default function StockFormsPage() {
                         ) : forms.length === 0 ? (
                             <TableRow><TableCell colSpan={6} className="p-0 border-none"><EmptyState icon={FileText} title="Kayıtlı Fiş Yok" description="Henüz toplu giriş/çıkış fişi oluşturulmamış." actionLabel="Yeni Fiş Oluştur" onAction={() => setOpen(true)} /></TableCell></TableRow>
                         ) : (
-                            forms.map(form => (
+                            forms.map((form: any) => (
                                 <TableRow key={form.id} className="hover:bg-slate-50/50 transition-colors">
                                     <TableCell className="font-mono font-bold text-xs text-slate-700">{form.formNumber}</TableCell>
                                     <TableCell className="text-slate-500 text-xs flex items-center gap-1">

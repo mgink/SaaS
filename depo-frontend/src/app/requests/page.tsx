@@ -44,31 +44,13 @@ export default function RequestsPage() {
     const [createForm, setCreateForm] = useState({ productId: '', quantity: 10, reason: '' });
     const [createLoading, setCreateLoading] = useState(false);
 
-    const fetchData = async () => {
+    useEffect(() => {
         const localUser = localStorage.getItem('user');
         if (localUser) {
             const user = JSON.parse(localUser);
             setUserRole(user.role);
         }
-
-        try {
-            // Hem talepleri hem de ürünleri (yeni talep için) çekiyoruz
-            const [reqRes, prodRes] = await Promise.all([
-                api.get('/requests'),
-                api.get('/products')
-            ]);
-            setRequests(reqRes.data);
-            // Sadece onaylı ürünler talep edilebilir
-            setProducts(prodRes.data.filter((p: any) => p.status === 'APPROVED'));
-            setSelectedIds([]);
-        } catch (e) {
-            toast.error("Veriler çekilemedi.");
-        } finally {
-            setLoading(false);
-        }
-    }
-
-    useEffect(() => { fetchData(); }, []);
+    }, []);
 
     // --- YENİ TALEP OLUŞTURMA ---
     const handleCreate = async () => {
@@ -82,7 +64,7 @@ export default function RequestsPage() {
             toast.success("Talep başarıyla oluşturuldu.");
             setIsCreateOpen(false);
             setCreateForm({ productId: '', quantity: 10, reason: '' });
-            fetchData(); // Listeyi yenile
+            refetch(); // Listeyi yenile
         } catch (e) {
             toast.error("Talep oluşturulamadı.");
         } finally {
@@ -91,7 +73,7 @@ export default function RequestsPage() {
     }
 
     // Seçilen ürünün detayını bul (Tedarikçiyi göstermek için)
-    const selectedProduct = products.find(p => p.id === createForm.productId);
+    const selectedProduct = products.find((p: any) => p.id === createForm.productId);
 
     // --- SIRALAMA FONKSİYONU ---
     const handleSort = (key: string) => {
@@ -144,7 +126,7 @@ export default function RequestsPage() {
         if (selectedIds.length === requests.length) {
             setSelectedIds([]);
         } else {
-            setSelectedIds(requests.map(r => r.id));
+            setSelectedIds(requests.map((r: any) => r.id));
         }
     }
 
@@ -167,7 +149,7 @@ export default function RequestsPage() {
         try {
             await api.post('/requests/bulk-status', { ids: selectedIds, status });
             toast.success("Toplu işlem başarılı.");
-            fetchData(); // Listeyi yenile
+            refetch(); // Listeyi yenile
             setIsSelectionMode(false);
         } catch (e) { toast.error("Hata oluştu."); }
     }
@@ -183,7 +165,7 @@ export default function RequestsPage() {
         try {
             await api.patch(`/requests/${selectedReq.id}`, processData);
             setIsProcessOpen(false);
-            fetchData(); // Listeyi yenile
+            refetch(); // Listeyi yenile
             toast.success(`Talep güncellendi: ${processData.status}`);
         } catch (e) { toast.error("Hata oluştu."); }
     }
@@ -193,7 +175,7 @@ export default function RequestsPage() {
         try {
             await api.post(`/requests/${id}/receive`);
             toast.success("Mal kabul yapıldı, stok güncellendi.");
-            fetchData(); // Listeyi yenile
+            refetch(); // Listeyi yenile
         } catch (e) {
             toast.error("İşlem başarısız.");
         }
@@ -228,7 +210,7 @@ export default function RequestsPage() {
                                     >
                                         <SelectTrigger><SelectValue placeholder="Listeden seçiniz..." /></SelectTrigger>
                                         <SelectContent>
-                                            {products.map(p => (
+                                            {products.map((p: any) => (
                                                 <SelectItem key={p.id} value={p.id}>
                                                     {p.name} <span className="text-slate-400 text-xs">({p.sku})</span>
                                                 </SelectItem>
@@ -273,7 +255,7 @@ export default function RequestsPage() {
                         </DialogContent>
                     </Dialog>
 
-                    <Badge variant="outline" className="text-base px-3 py-1 h-9">{requests.filter(r => r.status === 'PENDING').length} Bekleyen</Badge>
+                    <Badge variant="outline" className="text-base px-3 py-1 h-9">{requests.filter((r: any) => r.status === 'PENDING').length} Bekleyen</Badge>
                     {canApprove && (
                         <Button
                             variant={isSelectionMode ? "secondary" : "outline"}

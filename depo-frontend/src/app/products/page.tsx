@@ -73,9 +73,9 @@ export default function ProductsPage() {
     }, []);
 
     useEffect(() => {
-        let result = products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase()) || (p.barcode && p.barcode.includes(search)));
-        if (showCritical) result = result.filter(p => p.currentStock <= p.minStock);
-        if (selectedWarehouse !== 'ALL') result = result.filter(p => p.warehouseId === selectedWarehouse);
+        let result = products.filter((p: any) => p.name.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase()) || (p.barcode && p.barcode.includes(search)));
+        if (showCritical) result = result.filter((p: any) => p.currentStock <= p.minStock);
+        if (selectedWarehouse !== 'ALL') result = result.filter((p: any) => p.warehouseId === selectedWarehouse);
         setFilteredProducts(result);
     }, [products, search, showCritical, selectedWarehouse]);
 
@@ -108,7 +108,7 @@ export default function ProductsPage() {
 
     // --- TEDARİKÇİ YÖNETİMİ ---
     const addSupplierToList = (id: string) => {
-        const s = allSuppliers.find(sup => sup.id === id);
+        const s = allSuppliers.find((sup: any) => sup.id === id);
         if (s && !selectedSuppliers.find(sel => sel.id === id)) {
             const isFirst = selectedSuppliers.length === 0;
             setSelectedSuppliers([...selectedSuppliers, { id: s.id, name: s.name, isMain: isFirst }]);
@@ -119,7 +119,7 @@ export default function ProductsPage() {
     const addNewSupplierToList = () => {
         if (!newSupplierName) return;
         api.post('/suppliers', { name: newSupplierName }).then(res => {
-            setAllSuppliers([...allSuppliers, res.data]);
+            refetch();
             const isFirst = selectedSuppliers.length === 0;
             setSelectedSuppliers([...selectedSuppliers, { id: res.data.id, name: res.data.name, isMain: isFirst }]);
             setNewSupplierName('');
@@ -158,7 +158,7 @@ export default function ProductsPage() {
         try {
             if (isEditMode && selectedProductId) { await api.patch(`/products/${selectedProductId}`, data); toast.success('Güncellendi.'); }
             else { await api.post('/products', data); toast.success('Kaydedildi.'); }
-            setOpen(false); fetchData();
+            setOpen(false); refetch();
         }
         catch (e) { toast.error('Hata.'); } finally { setSaving(false); }
     };
@@ -170,27 +170,28 @@ export default function ProductsPage() {
     const canManage = ['ADMIN', 'SUPER_ADMIN'].includes(userRole);
     const canCreate = ['ADMIN', 'STAFF', 'SUPER_ADMIN'].includes(userRole);
 
-    const onBarcodeScanned = (code: string) => { setIsScannerOpen(false); const p = products.find(x => x.barcode === code); if (p) toast.info(`Kayıtlı: ${p.name}`); else if (confirm('Bulunamadı. Ekleyelim mi?')) { openCreate(); setFormData(prev => ({ ...prev, barcode: code })); } };
+    const onBarcodeScanned = (code: string) => { setIsScannerOpen(false); const p = products.find((x: any) => x.barcode === code); if (p) toast.info(`Kayıtlı: ${p.name}`); else if (confirm('Bulunamadı. Ekleyelim mi?')) { openCreate(); setFormData(prev => ({ ...prev, barcode: code })); } };
 
     const handleQuickCreate = async () => {
         if (!quickName) return;
         try {
             if (quickType === 'SUPPLIER') {
                 const res = await api.post('/suppliers', { name: quickName });
-                setAllSuppliers([...allSuppliers, res.data]); addSupplierToList(res.data.id);
+                refetch(); addSupplierToList(res.data.id);
             } else {
                 const endpoint = quickType === 'WAREHOUSE' ? '/settings/warehouses' : '/settings/departments';
                 const res = await api.post(endpoint, { name: quickName });
-                if (quickType === 'WAREHOUSE') { setWarehouses([...warehouses, res.data]); setFormData(prev => ({ ...prev, warehouseId: res.data.id })); }
-                else { setDepartments([...departments, res.data]); setFormData(prev => ({ ...prev, departmentId: res.data.id })); }
+                refetch();
+                if (quickType === 'WAREHOUSE') { setFormData(prev => ({ ...prev, warehouseId: res.data.id })); }
+                else { setFormData(prev => ({ ...prev, departmentId: res.data.id })); }
             }
             setQuickOpen(false); setQuickName(''); toast.success("Eklendi.");
         } catch (e) { toast.error("Hata."); }
     };
     const openQuickDialog = (type: any) => { setQuickType(type); setQuickOpen(true); };
 
-    const handleDelete = async (id: string) => { if (!confirm('Silinsin mi?')) return; try { await api.delete(`/products/${id}`); setProducts(products.filter(p => p.id !== id)); toast.success("Silindi."); } catch (e) { toast.error('Hata.'); } };
-    const handleStatusUpdate = async (id: string, status: 'APPROVED' | 'REJECTED') => { let reason = ''; if (status === 'REJECTED') { const input = prompt("Neden?"); if (!input) return; reason = input; } try { await api.patch(`/products/${id}/status`, { status, reason }); fetchData(); toast.success("Güncellendi."); } catch (e) { toast.error("Hata."); } };
+    const handleDelete = async (id: string) => { if (!confirm('Silinsin mi?')) return; try { await api.delete(`/products/${id}`); refetch(); toast.success("Silindi."); } catch (e) { toast.error('Hata.'); } };
+    const handleStatusUpdate = async (id: string, status: 'APPROVED' | 'REJECTED') => { let reason = ''; if (status === 'REJECTED') { const input = prompt("Neden?"); if (!input) return; reason = input; } try { await api.patch(`/products/${id}/status`, { status, reason }); refetch(); toast.success("Güncellendi."); } catch (e) { toast.error("Hata."); } };
 
     return (
         <AppLayout>
@@ -198,7 +199,7 @@ export default function ProductsPage() {
                 <div><h1 className="text-2xl font-bold text-slate-900">Ürün Yönetimi</h1></div>
                 <div className="flex gap-2 flex-wrap items-center">
                     <div className={`flex items-center space-x-2 border px-3 py-2 rounded-md transition-colors ${showCritical ? 'bg-red-50 border-red-200' : 'bg-white/70 backdrop-blur'}`}><Switch id="critical" checked={showCritical} onCheckedChange={setShowCritical} /><Label htmlFor="critical" className={`font-bold cursor-pointer flex items-center gap-1 ${showCritical ? 'text-red-600' : 'text-slate-600'}`}><AlertTriangle size={14} /> Kritik Stok</Label></div>
-                    <Select value={selectedWarehouse} onValueChange={setSelectedWarehouse}><SelectTrigger className="w-[160px] bg-white/70 backdrop-blur"><SelectValue placeholder="Depo Filtre" /></SelectTrigger><SelectContent><SelectItem value="ALL">Tüm Depolar</SelectItem>{warehouses.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}</SelectContent></Select>
+                    <Select value={selectedWarehouse} onValueChange={setSelectedWarehouse}><SelectTrigger className="w-[160px] bg-white/70 backdrop-blur"><SelectValue placeholder="Depo Filtre" /></SelectTrigger><SelectContent><SelectItem value="ALL">Tüm Depolar</SelectItem>{warehouses.map((w: any) => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}</SelectContent></Select>
                     <Button variant="outline" onClick={() => setIsScannerOpen(true)}><ScanBarcode className="mr-2 h-4 w-4" /> Tara</Button>
                     {canCreate && <Button onClick={openCreate} className="bg-blue-600 hover:bg-blue-700"><Plus className="mr-2 h-4 w-4" /> Yeni Ürün</Button>}
                 </div>
@@ -261,7 +262,7 @@ export default function ProductsPage() {
                             <div className="flex gap-2">
                                 <Select onValueChange={addSupplierToList}>
                                     <SelectTrigger className="bg-white"><SelectValue placeholder="Listeden Ekle" /></SelectTrigger>
-                                    <SelectContent>{allSuppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                                    <SelectContent>{allSuppliers.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
                                 </Select>
                                 <div className="flex items-center gap-1">
                                     <Input placeholder="Yeni Tedarikçi..." className="bg-white" value={newSupplierName} onChange={e => setNewSupplierName(e.target.value)} />
@@ -289,7 +290,7 @@ export default function ProductsPage() {
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2"><Label>Depo *</Label><Select value={formData.warehouseId} onValueChange={(val) => { if (val === 'NEW') openQuickDialog('WAREHOUSE'); else setFormData({ ...formData, warehouseId: val }) }}><SelectTrigger><SelectValue placeholder="Seç" /></SelectTrigger><SelectContent>{warehouses.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}<SelectItem value="NEW" className="text-blue-600 border-t">+ Yeni Depo</SelectItem></SelectContent></Select></div><div className="space-y-2"><Label>Departman *</Label><Select value={formData.departmentId} onValueChange={(val) => { if (val === 'NEW') openQuickDialog('DEPARTMENT'); else setFormData({ ...formData, departmentId: val }) }}><SelectTrigger><SelectValue placeholder="Seç" /></SelectTrigger><SelectContent>{departments.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}<SelectItem value="NEW" className="text-blue-600 border-t">+ Yeni Departman</SelectItem></SelectContent></Select></div>
+                            <div className="space-y-2"><Label>Depo *</Label><Select value={formData.warehouseId} onValueChange={(val) => { if (val === 'NEW') openQuickDialog('WAREHOUSE'); else setFormData({ ...formData, warehouseId: val }) }}><SelectTrigger><SelectValue placeholder="Seç" /></SelectTrigger><SelectContent>{warehouses.map((w: any) => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}<SelectItem value="NEW" className="text-blue-600 border-t">+ Yeni Depo</SelectItem></SelectContent></Select></div><div className="space-y-2"><Label>Departman *</Label><Select value={formData.departmentId} onValueChange={(val) => { if (val === 'NEW') openQuickDialog('DEPARTMENT'); else setFormData({ ...formData, departmentId: val }) }}><SelectTrigger><SelectValue placeholder="Seç" /></SelectTrigger><SelectContent>{departments.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}<SelectItem value="NEW" className="text-blue-600 border-t">+ Yeni Departman</SelectItem></SelectContent></Select></div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4 bg-slate-50 p-3 rounded border"><div className="space-y-2"><Label>Geliş (₺)</Label><Input type="number" required min="0" value={formData.buyingPrice} onChange={(e) => setFormData({ ...formData, buyingPrice: Number(e.target.value) })} /></div><div className="space-y-2"><Label>Satış (₺)</Label><Input type="number" min="0" value={formData.sellingPrice} onChange={(e) => setFormData({ ...formData, sellingPrice: Number(e.target.value) })} /></div></div>

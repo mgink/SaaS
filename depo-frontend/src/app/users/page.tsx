@@ -158,7 +158,7 @@ export default function UsersPage() {
                                     <SelectTrigger><SelectValue placeholder="Merkez" /></SelectTrigger>
                                     <SelectContent>
                                         {isAdmin && <SelectItem value="none">Merkez</SelectItem>}
-                                        {branches.map(b => (<SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>))}
+                                        {branches.map((b: any) => (<SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>))}
                                     </SelectContent>
                                 </Select>
                                 {isBranchManager && <p className="text-[10px] text-blue-600">* Otomatik olarak şubenize eklenecektir.</p>}
@@ -184,15 +184,15 @@ export default function UsersPage() {
                             <Tabs defaultValue="all" className="w-full">
                                 <TabsList className="w-full flex-wrap h-auto justify-start gap-2 bg-transparent p-0 mb-4">
                                     <TabsTrigger value="all" className="data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700 border border-transparent data-[state=active]:border-blue-200">Tümü</TabsTrigger>
-                                    {branches.map(b => (<TabsTrigger key={b.id} value={b.id} className="data-[state=active]:bg-indigo-100 data-[state=active]:text-indigo-700 border border-transparent data-[state=active]:border-indigo-200"><GitBranch size={14} className="mr-1" /> {b.name}</TabsTrigger>))}
+                                    {branches.map((b: any) => (<TabsTrigger key={b.id} value={b.id} className="data-[state=active]:bg-indigo-100 data-[state=active]:text-indigo-700 border border-transparent data-[state=active]:border-indigo-200"><GitBranch size={14} className="mr-1" /> {b.name}</TabsTrigger>))}
                                     <TabsTrigger value="center" className="data-[state=active]:bg-slate-200 data-[state=active]:text-slate-800">Merkez</TabsTrigger>
                                 </TabsList>
                                 <TabsContent value="all"><UsersTable data={users} /></TabsContent>
-                                <TabsContent value="center"><div className="mb-2 p-2 bg-slate-50 rounded text-xs text-slate-500 flex items-center gap-2"><Briefcase size={14} /> Merkez personelleri</div><UsersTable data={users.filter(u => !u.branchId)} /></TabsContent>
-                                {branches.map(b => (
+                                <TabsContent value="center"><div className="mb-2 p-2 bg-slate-50 rounded text-xs text-slate-500 flex items-center gap-2"><Briefcase size={14} /> Merkez personelleri</div><UsersTable data={users.filter((u: any) => !u.branchId)} /></TabsContent>
+                                {branches.map((b: any) => (
                                     <TabsContent key={b.id} value={b.id}>
-                                        <div className="mb-2 p-3 bg-indigo-50 rounded border border-indigo-100 flex flex-col gap-1"><div className="text-sm font-bold text-indigo-800 flex items-center gap-2"><ShieldCheck size={16} /> Şube Yöneticisi</div><div className="text-xs text-indigo-600">{users.find(u => u.branchId === b.id && u.role === 'BRANCH_MANAGER')?.fullName || 'Atanmamış'}</div></div>
-                                        <UsersTable data={users.filter(u => u.branchId === b.id)} />
+                                        <div className="mb-2 p-3 bg-indigo-50 rounded border border-indigo-100 flex flex-col gap-1"><div className="text-sm font-bold text-indigo-800 flex items-center gap-2"><ShieldCheck size={16} /> Şube Yöneticisi</div><div className="text-xs text-indigo-600">{users.find((u: any) => u.branchId === b.id && u.role === 'BRANCH_MANAGER')?.fullName || 'Atanmamış'}</div></div>
+                                        <UsersTable data={users.filter((u: any) => u.branchId === b.id)} />
                                     </TabsContent>
                                 ))}
                             </Tabs>
@@ -214,7 +214,7 @@ export default function UsersPage() {
                             <div className="space-y-2"><Label>Yeni Şifre (Opsiyonel)</Label><Input type="password" placeholder="Değiştirmek için yazın" value={editUser.password} onChange={e => setEditUser({ ...editUser, password: e.target.value })} /></div>
                             <div className="grid grid-cols-2 gap-2">
                                 <div className="space-y-2"><Label>Rol</Label><Select value={editUser.role} onValueChange={val => setEditUser({ ...editUser, role: val })} disabled={isBranchManager}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{isAdmin && <SelectItem value="ADMIN">Yönetici</SelectItem>}{isAdmin && <SelectItem value="BRANCH_MANAGER">Şube Müdürü</SelectItem>}<SelectItem value="STAFF">Personel</SelectItem><SelectItem value="VIEWER">İzleyici</SelectItem></SelectContent></Select></div>
-                                <div className="space-y-2"><Label>Şube</Label><Select value={editUser.branchId} onValueChange={val => setEditUser({ ...editUser, branchId: val })} disabled={isBranchManager}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{isAdmin && <SelectItem value="none">Merkez</SelectItem>}{branches.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent></Select></div>
+                                <div className="space-y-2"><Label>Şube</Label><Select value={editUser.branchId} onValueChange={val => setEditUser({ ...editUser, branchId: val })} disabled={isBranchManager}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{isAdmin && <SelectItem value="none">Merkez</SelectItem>}{branches.map((b: any) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent></Select></div>
                             </div>
                             <div className="space-y-2"><Label>Etiketler</Label><Input value={editUser.tags} onChange={e => setEditUser({ ...editUser, tags: e.target.value })} /></div>
                             <div className="grid grid-cols-2 gap-2 pt-2">

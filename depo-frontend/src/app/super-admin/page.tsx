@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
+import { useMultipleDataFetch } from '@/hooks/useDataFetch';
 import AppLayout from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -22,10 +23,16 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
 export default function SuperAdminPage() {
     const router = useRouter();
-    const [stats, setStats] = useState<any>(null);
     const [plans, setPlans] = useState<any[]>([]);
-    const [requests, setRequests] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+
+    const { data, loading, refetch } = useMultipleDataFetch([
+        { key: 'stats', url: '/super-admin/dashboard' },
+        { key: 'plans', url: '/super-admin/plans' },
+        { key: 'requests', url: '/super-admin/requests' }
+    ]);
+
+    const stats = data.stats;
+    const requests = data.requests || [];
 
     // --- STATE'LER ---
 
@@ -45,28 +52,15 @@ export default function SuperAdminPage() {
 
     const [saving, setSaving] = useState(false);
 
-    // --- VERİ ÇEKME ---
-    const fetchData = async () => {
-        try {
-            const [statsRes, plansRes, reqRes] = await Promise.all([
-                api.get('/super-admin/dashboard'),
-                api.get('/super-admin/plans'),
-                api.get('/super-admin/requests')
-            ]);
-            setStats(statsRes.data);
-            setPlans(plansRes.data);
-            setRequests(reqRes.data);
-        } catch (error) { console.error(error); } finally { setLoading(false); }
-    };
-
     useEffect(() => {
         const localUser = localStorage.getItem('user');
         if (!localUser || JSON.parse(localUser).role !== 'SUPER_ADMIN') {
             router.push('/dashboard');
             return;
         }
-        fetchData();
-    }, [router]);
+        // Set plans from data when available
+        if (data.plans) setPlans(data.plans);
+    }, [router, data.plans]);
 
     // --- PLAN İŞLEMLERİ (DRAG & DROP, CREATE, UPDATE, DELETE) ---
 
@@ -126,13 +120,13 @@ export default function SuperAdminPage() {
         try {
             if (selectedPlan) { await api.patch(`/super-admin/plans/${selectedPlan.id}`, payload); toast.success("Paket güncellendi."); }
             else { await api.post('/super-admin/plans', payload); toast.success("Paket oluşturuldu."); }
-            setIsPlanDialogOpen(false); fetchData();
+            setIsPlanDialogOpen(false); refetch();
         } catch (error: any) { toast.error("İşlem başarısız."); } finally { setSaving(false); }
     };
 
     const handleDeletePlan = async (id: string) => {
         if (!confirm("Silmek istediğinize emin misiniz?")) return;
-        try { await api.delete(`/super-admin/plans/${id}`); toast.success("Paket silindi."); fetchData(); } catch (e: any) { toast.error(e.response?.data?.message || "Silinemedi."); }
+        try { await api.delete(`/super-admin/plans/${id}`); toast.success("Paket silindi."); refetch(); } catch (e: any) { toast.error(e.response?.data?.message || "Silinemedi."); }
     };
 
     // --- ŞİRKET İŞLEMLERİ (DETAYLI EDİT) ---
@@ -155,18 +149,18 @@ export default function SuperAdminPage() {
         e.preventDefault(); setSaving(true);
         try {
             await api.patch(`/super-admin/tenants/${selectedTenant.id}`, selectedTenant);
-            setIsTenantSheetOpen(false); fetchData(); toast.success("Şirket güncellendi.");
+            setIsTenantSheetOpen(false); refetch(); toast.success("Şirket güncellendi.");
         } catch (e) { toast.error("Hata."); } finally { setSaving(false); }
     };
 
     const handleDeleteTenant = async (id: string) => {
         if (!confirm("DİKKAT: Şirketi silmek üzeresiniz!")) return;
-        try { await api.delete(`/super-admin/tenants/${id}`); fetchData(); toast.info("Şirket silindi."); } catch (e) { toast.error("Hata."); }
+        try { await api.delete(`/super-admin/tenants/${id}`); refetch(); toast.info("Şirket silindi."); } catch (e) { toast.error("Hata."); }
     }
 
     // --- TALEP İŞLEMLERİ ---
     const handleRequestStatus = async (id: string, status: string) => {
-        try { await api.patch(`/super-admin/requests/${id}`, { status }); fetchData(); toast.success("Talep güncellendi."); } catch (e) { toast.error("Hata."); }
+        try { await api.patch(`/super-admin/requests/${id}`, { status }); refetch(); toast.success("Talep güncellendi."); } catch (e) { toast.error("Hata."); }
     }
 
     if (loading || !stats) return <AppLayout><div className="flex h-[50vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div></AppLayout>;
@@ -187,7 +181,7 @@ export default function SuperAdminPage() {
                 <TabsList className="grid w-full grid-cols-3 max-w-[600px]">
                     <TabsTrigger value="tenants">Şirket Listesi</TabsTrigger>
                     <TabsTrigger value="plans">Paket Yönetimi</TabsTrigger>
-                    <TabsTrigger value="requests">Talepler ({requests.filter(r => r.status === 'PENDING').length})</TabsTrigger>
+                    <TabsTrigger value="requests">Talepler ({requests.filter((r: any) => r.status === 'PENDING').length})</TabsTrigger>
                 </TabsList>
 
                 {/* --- 1. SEKME: ŞİRKET LİSTESİ --- */}

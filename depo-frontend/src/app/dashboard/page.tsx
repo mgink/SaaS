@@ -100,24 +100,11 @@ export default function DashboardPage() {
         if (userData) {
             const u = JSON.parse(userData);
             setUser(u);
-            if (u.role === 'ADMIN' || u.role === 'SUPER_ADMIN') fetchBranches();
         }
-        fetchStats();
+        refetch();
     }, []);
 
-    useEffect(() => { if (user) fetchStats(); }, [selectedBranch]);
-
-    const fetchBranches = async () => { try { const res = await api.get('/branches'); setBranches(res.data); } catch (e) { } }
-
-    const fetchStats = async () => {
-        setLoading(true);
-        try {
-            const query = selectedBranch !== 'ALL' ? `?branchId=${selectedBranch}` : '';
-            const res = await api.get(`/dashboard${query}`);
-            setStats(res.data);
-        } catch (error) { toast.error("Veriler güncellenemedi."); }
-        finally { setLoading(false); }
-    };
+    useEffect(() => { if (user) refetch(); }, [selectedBranch]);
 
     const handleQuickRequest = async (productId: string, productName: string) => {
         if (requestQty <= 0) {
@@ -127,7 +114,7 @@ export default function DashboardPage() {
         try {
             await api.post('/requests', { productId, quantity: requestQty, reason: 'Kritik Stok', type: 'PURCHASE' });
             toast.success(`${productName} için talep oluşturuldu.`);
-            fetchStats();
+            refetch();
         } catch (e) { toast.error("Hata."); }
     }
 
@@ -148,7 +135,7 @@ export default function DashboardPage() {
             <div className="flex flex-col h-[50vh] items-center justify-center text-slate-500">
                 <AlertCircle size={48} className="mb-4 opacity-20" />
                 <p>Veri yok.</p>
-                <Button variant="outline" className="mt-4" onClick={fetchStats}>Tekrar Dene</Button>
+                <Button variant="outline" className="mt-4" onClick={refetch}>Tekrar Dene</Button>
             </div>
         </AppLayout>
     );
@@ -357,7 +344,7 @@ export default function DashboardPage() {
                                 <SelectTrigger className="w-[200px] border-none shadow-none h-10 focus:ring-0 bg-transparent font-semibold text-slate-700"><SelectValue placeholder="Tüm Şubeler" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="ALL">Tüm Şirket</SelectItem>
-                                    {branches.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+                                    {branches.map((b: any) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
                         </div>

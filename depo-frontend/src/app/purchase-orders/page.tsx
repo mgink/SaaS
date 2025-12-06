@@ -37,25 +37,12 @@ export default function PurchaseOrdersPage() {
     const [selectedOrder, setSelectedOrder] = useState<any>(null);
     const [receiveData, setReceiveData] = useState<any>({}); // { itemId: { received: 0, notes: '' } }
 
-    const fetchData = async () => {
-        try {
-            const [ordRes, supRes, prodRes] = await Promise.all([
-                api.get('/purchase-orders'),
-                api.get('/suppliers'),
-                api.get('/products')
-            ]);
-            setOrders(ordRes.data);
-            setSuppliers(supRes.data);
-            setProducts(prodRes.data.filter((p: any) => p.status === 'APPROVED'));
-        } catch (e) { toast.error("Veri hatası."); } finally { setLoading(false); }
-    };
 
-    useEffect(() => { fetchData(); }, []);
 
     // --- SİPARİŞ OLUŞTURMA ---
     const addItemToOrder = () => {
         if (!tempItem.productId) return;
-        const product = products.find(p => p.id === tempItem.productId);
+        const product = products.find((p: any) => p.id === tempItem.productId);
         setNewOrder({ ...newOrder, items: [...newOrder.items, { ...tempItem, productName: product.name }] });
         setTempItem({ productId: '', quantity: 1, unitPrice: 0 });
     };
@@ -66,7 +53,7 @@ export default function PurchaseOrdersPage() {
             await api.post('/purchase-orders', newOrder);
             setIsCreateOpen(false);
             setNewOrder({ supplierId: '', expectedDate: '', items: [] });
-            fetchData();
+            refetch();
             toast.success("Sipariş oluşturuldu.");
         } catch (e) { toast.error("Hata."); }
     };
@@ -99,7 +86,7 @@ export default function PurchaseOrdersPage() {
         try {
             await api.post(`/purchase-orders/${selectedOrder.id}/receive`, { items: itemsToSend });
             setIsReceiveOpen(false);
-            fetchData();
+            refetch();
             toast.success("Mal kabul tamamlandı, stoklar güncellendi.");
         } catch (e) { toast.error("İşlem başarısız."); }
     };
@@ -114,14 +101,14 @@ export default function PurchaseOrdersPage() {
                         <DialogHeader><DialogTitle>Yeni Satın Alma Siparişi</DialogTitle></DialogHeader>
                         <div className="space-y-4 mt-2">
                             <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2"><Label>Tedarikçi</Label><Select onValueChange={v => setNewOrder({ ...newOrder, supplierId: v })}><SelectTrigger><SelectValue placeholder="Seç" /></SelectTrigger><SelectContent>{suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select></div>
+                                <div className="space-y-2"><Label>Tedarikçi</Label><Select onValueChange={v => setNewOrder({ ...newOrder, supplierId: v })}><SelectTrigger><SelectValue placeholder="Seç" /></SelectTrigger><SelectContent>{suppliers.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select></div>
                                 <div className="space-y-2"><Label>Beklenen Tarih</Label><Input type="date" onChange={e => setNewOrder({ ...newOrder, expectedDate: e.target.value })} /></div>
                             </div>
 
                             <div className="bg-slate-50 p-3 rounded border border-slate-200 space-y-3">
                                 <Label className="text-xs font-bold text-slate-500">SİPARİŞ KALEMLERİ</Label>
                                 <div className="flex gap-2 items-end">
-                                    <div className="flex-1 space-y-1"><Label className="text-xs">Ürün</Label><Select value={tempItem.productId} onValueChange={v => { const p = products.find(x => x.id === v); setTempItem({ ...tempItem, productId: v, unitPrice: p.buyingPrice }) }}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent></Select></div>
+                                    <div className="flex-1 space-y-1"><Label className="text-xs">Ürün</Label><Select value={tempItem.productId} onValueChange={v => { const p = products.find((x: any) => x.id === v); setTempItem({ ...tempItem, productId: v, unitPrice: p.buyingPrice }) }}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{products.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent></Select></div>
                                     <div className="w-20 space-y-1"><Label className="text-xs">Miktar</Label><Input type="number" value={tempItem.quantity} onChange={e => setTempItem({ ...tempItem, quantity: Number(e.target.value) })} /></div>
                                     <div className="w-24 space-y-1"><Label className="text-xs">Birim Fiy.</Label><Input type="number" value={tempItem.unitPrice} onChange={e => setTempItem({ ...tempItem, unitPrice: Number(e.target.value) })} /></div>
                                     <Button onClick={addItemToOrder} variant="secondary"><Plus size={16} /></Button>
@@ -147,7 +134,7 @@ export default function PurchaseOrdersPage() {
                     <Table>
                         <TableHeader><TableRow><TableHead>Sipariş No</TableHead><TableHead>Tedarikçi</TableHead><TableHead>Durum</TableHead><TableHead>İlerleme</TableHead><TableHead className="text-right">İşlem</TableHead></TableRow></TableHeader>
                         <TableBody>
-                            {orders.map(order => (
+                            {orders.map((order: any) => (
                                 <TableRow key={order.id}>
                                     <TableCell className="font-mono text-xs">{order.orderNumber}</TableCell>
                                     <TableCell><div className="font-medium">{order.supplier.name}</div><div className="text-xs text-slate-500">{new Date(order.createdAt).toLocaleDateString()}</div></TableCell>

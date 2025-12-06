@@ -68,36 +68,15 @@ export default function TransactionsPage() {
         sku: ''
     });
 
-    // --- VERİ ÇEKME ---
-    const fetchData = async () => {
-        setLoading(true);
-        try {
-            const localUser = localStorage.getItem('user');
-            if (localUser) setUserRole(JSON.parse(localUser).role || 'VIEWER');
+    useEffect(() => {
+        const localUser = localStorage.getItem('user');
+        if (localUser) setUserRole(JSON.parse(localUser).role || 'VIEWER');
+    }, []);
 
-            let query = '';
-            if (dateRange.start && dateRange.end) {
-                query = `?startDate=${dateRange.start}&endDate=${dateRange.end}`;
-            }
-
-            const [txRes, prodRes, supRes] = await Promise.all([
-                api.get(`/transactions${query}`),
-                api.get('/products'),
-                api.get('/suppliers')
-            ]);
-
-            setTransactions(txRes.data);
-            // Sadece onaylı ürünler işlem görebilir
-            setProducts(prodRes.data.filter((p: any) => p.status === 'APPROVED'));
-            setSuppliers(supRes.data);
-        } catch (e) {
-            toast.error('Veriler yüklenirken hata oluştu.');
-        } finally {
-            setLoading(false);
-        }
-    }
-
-    useEffect(() => { fetchData(); }, [dateRange]);
+    // Refetch when date range changes
+    useEffect(() => {
+        refetch();
+    }, [dateRange]);
 
     // --- SATIR İŞLEMLERİ (FORM İÇİ) ---
     const addItem = () => {
@@ -134,7 +113,7 @@ export default function TransactionsPage() {
             setOpen(false);
             // Formu sıfırla
             setFormData({ type: 'INBOUND', supplierId: '', waybillNo: '', isReceived: true, notes: '', items: [] });
-            fetchData();
+            refetch();
             toast.success("İşlem fişi başarıyla oluşturuldu.");
         } catch (e: any) {
             toast.error(e.response?.data?.message || 'İşlem başarısız.');
@@ -156,7 +135,7 @@ export default function TransactionsPage() {
             // Eğer backend'de özel endpoint yoksa eklenebilir.
             // Şimdilik "Not implemented" uyarısı vermemek için mock yapıyoruz.
             toast.info("Bu özellik için backend endpoint kontrolü gerekli.");
-            // Gerçek implementasyon: await api.patch(`/transactions/${id}`, { status }); fetchData();
+            // Gerçek implementasyon: await api.patch(`/transactions/${id}`, { status }); refetch();
         } catch (e) {
             toast.error("Hata.");
         }
@@ -165,7 +144,7 @@ export default function TransactionsPage() {
     // --- BARKOD ---
     const onBarcodeScanned = (code: string) => {
         setIsScannerOpen(false);
-        const product = products.find(x => x.barcode === code);
+        const product = products.find((x: any) => x.barcode === code);
 
         if (product) {
             // Barkod okununca direkt ekleme satırına ürünü seç
@@ -253,7 +232,7 @@ export default function TransactionsPage() {
                                             <Select value={formData.supplierId} onValueChange={(val) => setFormData({ ...formData, supplierId: val })}>
                                                 <SelectTrigger><SelectValue placeholder="Seçiniz..." /></SelectTrigger>
                                                 <SelectContent>
-                                                    {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                                                    {suppliers.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
                                         </div>
@@ -281,12 +260,12 @@ export default function TransactionsPage() {
                                     <div className="w-full md:flex-1 space-y-1">
                                         <Label className="text-xs">Ürün</Label>
                                         <Select value={tempItem.productId} onValueChange={(val) => {
-                                            const p = products.find(x => x.id === val);
+                                            const p = products.find((x: any) => x.id === val);
                                             setTempItem({ ...tempItem, productId: val, productName: p.name, stock: p.currentStock, sku: p.sku });
                                         }}>
                                             <SelectTrigger><SelectValue placeholder="Ürün Seç..." /></SelectTrigger>
                                             <SelectContent>
-                                                {products.map(p => (
+                                                {products.map((p: any) => (
                                                     <SelectItem key={p.id} value={p.id}>
                                                         {p.name} <span className="text-xs text-slate-400">({p.sku}) | Stok: {p.currentStock}</span>
                                                     </SelectItem>
@@ -393,7 +372,7 @@ export default function TransactionsPage() {
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            transactions.map((tx) => (
+                            transactions.map((tx: any) => (
                                 <TableRow key={tx.id} className={`hover:bg-slate-50/50 transition-colors ${tx.status === 'PENDING' ? 'bg-yellow-50/40' : ''}`}>
                                     <TableCell className="text-xs text-slate-500 font-mono">
                                         {new Date(tx.createdAt).toLocaleDateString('tr-TR')}

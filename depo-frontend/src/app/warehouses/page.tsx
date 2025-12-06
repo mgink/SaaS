@@ -57,25 +57,7 @@ export default function WarehousesPage() {
     const [transferFrom, setTransferFrom] = useState('');
     const [transferTo, setTransferTo] = useState('');
 
-    const fetchData = async () => {
-        try {
-            const [wRes, bRes, sRes] = await Promise.all([
-                api.get('/settings/warehouses'),
-                api.get('/branches'),
-                api.get('/suppliers') // Tedarikçileri de çek
-            ]);
-            setWarehouses(wRes.data);
-            setBranches(bRes.data);
-            setSuppliers(sRes.data);
-        } catch (error) {
-            console.error(error);
-            toast.error("Veriler yüklenemedi.");
-        } finally {
-            setLoading(false);
-        }
-    };
 
-    useEffect(() => { fetchData(); }, []);
 
     // --- DEPO DETAYLARINI GÖRÜNTÜLE ---
     const openDetails = async (warehouseId: string) => {
@@ -102,7 +84,7 @@ export default function WarehousesPage() {
             // Tedarikçi isminden ID'yi bulmaya çalış (Backend sadece isim dönüyorsa)
             // Not: İdealde backend'in criticalList içinde supplierId de dönmesi gerekir.
             // Eşleşme olmazsa boş bırakır, kullanıcı seçer.
-            const matchedSupplier = suppliers.find(s => s.name === p.supplier);
+            const matchedSupplier = suppliers.find((s: any) => s.name === p.supplier);
 
             // Önerilen miktar: Min Stok - Mevcut Stok + %20 Tampon (En az 5)
             const suggestedQty = Math.max(5, (p.min - p.stock) + Math.ceil(p.min * 0.2));
@@ -180,7 +162,7 @@ export default function WarehousesPage() {
             await api.post('/settings/warehouses', form);
             setForm({ name: '', location: '', branchId: '', departments: [] });
             setIsCreateOpen(false);
-            fetchData();
+            refetch();
             toast.success("Depo oluşturuldu.");
         } catch (e) {
             toast.error("Hata oluştu.");
@@ -196,7 +178,7 @@ export default function WarehousesPage() {
                 branchId: form.branchId
             });
             setIsEditOpen(false);
-            fetchData();
+            refetch();
             toast.success("Güncellendi.");
         } catch (e) {
             toast.error("Hata oluştu.");
@@ -215,7 +197,7 @@ export default function WarehousesPage() {
         if (!confirm('Silinsin mi?')) return;
         try {
             await api.delete(`/settings/warehouses/${id}`);
-            fetchData();
+            refetch();
             toast.success("Silindi.");
         } catch (err: any) {
             toast.error(err.response?.data?.message || "Hata.");
@@ -226,7 +208,7 @@ export default function WarehousesPage() {
         try {
             await api.post('/settings/warehouses/transfer', { fromId: transferFrom, toId: transferTo });
             setIsTransferOpen(false);
-            fetchData();
+            refetch();
             toast.success("Taşındı.");
         } catch (e) {
             toast.error("Hata oluştu.");
@@ -246,8 +228,8 @@ export default function WarehousesPage() {
                             <DialogHeader><DialogTitle>Transfer</DialogTitle></DialogHeader>
                             <div className="space-y-4 mt-4">
                                 <div className="bg-yellow-50 p-3 rounded border border-yellow-200 flex gap-2 text-sm text-yellow-700"><AlertCircle size={16} /><p>Tüm ürünler aktarılacak.</p></div>
-                                <div className="space-y-2"><Label>Kaynak</Label><Select onValueChange={setTransferFrom}><SelectTrigger><SelectValue placeholder="Seç" /></SelectTrigger><SelectContent>{warehouses.map(w => <SelectItem key={w.id} value={w.id}>{w.name} ({w._count.products} Ürün)</SelectItem>)}</SelectContent></Select></div>
-                                <div className="space-y-2"><Label>Hedef</Label><Select onValueChange={setTransferTo}><SelectTrigger><SelectValue placeholder="Seç" /></SelectTrigger><SelectContent>{warehouses.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}</SelectContent></Select></div>
+                                <div className="space-y-2"><Label>Kaynak</Label><Select onValueChange={setTransferFrom}><SelectTrigger><SelectValue placeholder="Seç" /></SelectTrigger><SelectContent>{warehouses.map((w: any) => <SelectItem key={w.id} value={w.id}>{w.name} ({w._count.products} Ürün)</SelectItem>)}</SelectContent></Select></div>
+                                <div className="space-y-2"><Label>Hedef</Label><Select onValueChange={setTransferTo}><SelectTrigger><SelectValue placeholder="Seç" /></SelectTrigger><SelectContent>{warehouses.map((w: any) => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}</SelectContent></Select></div>
                                 <Button onClick={handleTransfer} className="w-full bg-slate-900">Başlat</Button>
                             </div>
                         </DialogContent>
@@ -260,7 +242,7 @@ export default function WarehousesPage() {
                             <div className="space-y-4 mt-4">
                                 <div className="space-y-2"><Label>Ad</Label><Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
                                 <div className="space-y-2"><Label>Konum</Label><Input value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} /></div>
-                                <div className="space-y-2"><Label>Şube</Label><Select onValueChange={(val) => setForm({ ...form, branchId: val })}><SelectTrigger><SelectValue placeholder="Seç (Opsiyonel)" /></SelectTrigger><SelectContent>{branches.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent></Select></div>
+                                <div className="space-y-2"><Label>Şube</Label><Select onValueChange={(val) => setForm({ ...form, branchId: val })}><SelectTrigger><SelectValue placeholder="Seç (Opsiyonel)" /></SelectTrigger><SelectContent>{branches.map((b: any) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent></Select></div>
                                 <div className="space-y-2">
                                     <Label>Departmanlar</Label>
                                     <div className="flex gap-2"><Input placeholder="Raf A..." value={tempDept} onChange={e => setTempDept(e.target.value)} /><Button variant="secondary" onClick={addTempDept} type="button"><Plus size={16} /></Button></div>
@@ -277,7 +259,7 @@ export default function WarehousesPage() {
                 <EmptyState icon={Warehouse} title="Depo Bulunamadı" description="Henüz hiç depo tanımlanmamış. İlk deponuzu oluşturarak başlayın." actionLabel="+ İlk Depoyu Ekle" onAction={() => setIsCreateOpen(true)} />
             ) : (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    {warehouses.map((w) => (
+                    {warehouses.map((w: any) => (
                         <Card key={w.id} onClick={() => openDetails(w.id)} className="hover:shadow-lg transition-all border-l-4 border-l-blue-500 group relative cursor-pointer hover:scale-[1.02]">
                             <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
                                 <Button variant="ghost" size="icon" className="h-8 w-8 bg-white shadow-sm" onClick={(e) => openEdit(e, w)}><Edit2 size={16} /></Button>
@@ -304,7 +286,7 @@ export default function WarehousesPage() {
                     <div className="space-y-4 mt-4">
                         <div className="space-y-2"><Label>Depo Adı</Label><Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
                         <div className="space-y-2"><Label>Konum</Label><Input value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} /></div>
-                        <div className="space-y-2"><Label>Bağlı Şube</Label><Select value={form.branchId} onValueChange={(val) => setForm({ ...form, branchId: val })}><SelectTrigger><SelectValue placeholder="Seç" /></SelectTrigger><SelectContent>{branches.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent></Select></div>
+                        <div className="space-y-2"><Label>Bağlı Şube</Label><Select value={form.branchId} onValueChange={(val) => setForm({ ...form, branchId: val })}><SelectTrigger><SelectValue placeholder="Seç" /></SelectTrigger><SelectContent>{branches.map((b: any) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent></Select></div>
                         <Button onClick={handleUpdate} className="w-full bg-slate-900">Güncelle</Button>
                     </div>
                 </DialogContent>
@@ -422,7 +404,7 @@ export default function WarehousesPage() {
                                                                         >
                                                                             <SelectTrigger className="w-[180px] h-8 bg-white"><SelectValue placeholder="Seçiniz" /></SelectTrigger>
                                                                             <SelectContent>
-                                                                                {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                                                                                {suppliers.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                                                                             </SelectContent>
                                                                         </Select>
                                                                     </TableCell>

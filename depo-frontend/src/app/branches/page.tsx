@@ -45,15 +45,15 @@ export default function BranchesPage() {
 
     // --- YARDIMCI FONKSİYONLAR ---
     const getBranchManager = (branchId: string) => {
-        return users.find(u => u.branchId === branchId && u.role === 'BRANCH_MANAGER');
+        return users.find((u: any) => u.branchId === branchId && u.role === 'BRANCH_MANAGER');
     }
 
     const getBranchStaff = (branchId: string) => {
-        return users.filter(u => u.branchId === branchId && u.role !== 'BRANCH_MANAGER');
+        return users.filter((u: any) => u.branchId === branchId && u.role !== 'BRANCH_MANAGER');
     }
 
     const getBranchWarehouses = (branchId: string) => {
-        return warehouses.filter(w => w.branchId === branchId);
+        return warehouses.filter((w: any) => w.branchId === branchId);
     }
 
     // --- HANDLERS ---
@@ -142,7 +142,7 @@ export default function BranchesPage() {
                 <EmptyState icon={Store} title="Şube Yok" description="Henüz hiç şube eklenmemiş." actionLabel="+ Şube Ekle" onAction={() => setIsCreateOpen(true)} />
             ) : (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    {branches.map((b) => {
+                    {branches.map((b: any) => {
                         const manager = getBranchManager(b.id);
                         const staffCount = getBranchStaff(b.id).length;
                         const whCount = getBranchWarehouses(b.id).length;
