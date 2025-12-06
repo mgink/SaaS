@@ -43,7 +43,7 @@ export default function ProfilePage() {
 
             toast.success("Profil güncellendi.");
             setForm(prev => ({ ...prev, currentPassword: '', newPassword: '' }));
-        } catch (e) { toast.error("Güncelleme başarısız."); } finally { setLoading(false); }
+        } catch (e) { /* Global error handler */ } finally { setLoading(false); }
     }
 
     return (

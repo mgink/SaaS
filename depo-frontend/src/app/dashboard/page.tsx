@@ -115,7 +115,7 @@ export default function DashboardPage() {
             await api.post('/requests', { productId, quantity: requestQty, reason: 'Kritik Stok', type: 'PURCHASE' });
             toast.success(`${productName} için talep oluşturuldu.`);
             refetch();
-        } catch (e) { toast.error("Hata."); }
+        } catch (e) { /* Global error handler */ }
     }
 
     const openDetailModal = (type: 'VALUE' | 'PRODUCTS' | 'PENDING' | 'CRITICAL') => {

@@ -21,7 +21,7 @@ export default function FinancePage() {
     const handlePay = async (id: string) => {
         if (!confirm("Ödendi olarak işaretlensin mi?")) return;
         try { await api.patch(`/transactions/${id}/pay`); toast.success("Kaydedildi."); refetch(); }
-        catch (e) { toast.error("Hata."); }
+        catch (e) { /* Global error handler */ }
     }
 
     const toggleSupplier = (supplierName: string) => {

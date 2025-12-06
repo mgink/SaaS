@@ -31,7 +31,7 @@ export default function RegisterPage() {
             setPlans(res.data);
             const free = res.data.find((p: any) => p.price === 0 && p.code !== 'ENTERPRISE');
             if (free) { setSelectedPlan(free); setFormData(prev => ({ ...prev, planCode: free.code })); }
-        }).catch(err => toast.error("Planlar yüklenirken hata oluştu."));
+        }).catch(err => { /* Global error handler */ });
     }, []);
 
     const handleSelectPlan = (plan: any) => {
@@ -56,7 +56,7 @@ export default function RegisterPage() {
             await api.post('/auth/register', formData);
             toast.success("Kayıt başarılı! Giriş ekranına yönlendiriliyorsunuz.");
             setTimeout(() => router.push('/login'), 2000);
-        } catch (error: any) { toast.error(error.response?.data?.message || 'Kayıt başarısız.'); } finally { setLoading(false); }
+        } catch (error) { /* Global error handler */ } finally { setLoading(false); }
     };
 
     const handleContactSubmit = async (e: React.FormEvent) => {
@@ -66,7 +66,7 @@ export default function RegisterPage() {
             await api.post('/auth/enterprise-request', contactForm);
             toast.success("Talebiniz alındı! Satış ekibimiz sizinle iletişime geçecektir.");
             setTimeout(() => router.push('/'), 3000);
-        } catch (e) { toast.error("Talep gönderilemedi."); } finally { setLoading(false); }
+        } catch (e) { /* Global error handler */ } finally { setLoading(false); }
     }
 
     const isEnterprise = selectedPlan?.code === 'ENTERPRISE';

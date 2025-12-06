@@ -55,7 +55,7 @@ export default function PurchaseOrdersPage() {
             setNewOrder({ supplierId: '', expectedDate: '', items: [] });
             refetch();
             toast.success("Sipariş oluşturuldu.");
-        } catch (e) { toast.error("Hata."); }
+        } catch (e) { /* Global error handler */ }
     };
 
     // --- MAL KABUL ---
@@ -88,7 +88,7 @@ export default function PurchaseOrdersPage() {
             setIsReceiveOpen(false);
             refetch();
             toast.success("Mal kabul tamamlandı, stoklar güncellendi.");
-        } catch (e) { toast.error("İşlem başarısız."); }
+        } catch (e) { /* Global error handler */ }
     };
 
     return (

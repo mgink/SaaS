@@ -38,7 +38,7 @@ export default function ChangePasswordPage() {
 
             router.push('/dashboard');
         } catch (e) {
-            toast.error("Hata oluştu.");
+            /* Global error handler */
         } finally {
             setLoading(false);
         }

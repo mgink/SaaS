@@ -73,7 +73,7 @@ export default function UsersPage() {
             setNewUser({ fullName: '', email: '', phone: '', password: '', role: 'STAFF', branchId: currentUser.role === 'BRANCH_MANAGER' ? currentUser.branchId : '', canCreateProduct: false, autoApprove: false, tags: '' });
             refetch();
             toast.success("Personel eklendi.");
-        } catch (error: any) { toast.error(error.response?.data?.message || 'Hata oluştu'); }
+        } catch (error) { /* Global error handler */ }
     };
 
     const openEditModal = (user: any) => {
@@ -98,12 +98,12 @@ export default function UsersPage() {
         try {
             await api.patch(`/users/${editUser.id}`, { ...editUser, tags: tagsArray });
             setIsEditOpen(false); refetch(); toast.success("Güncellendi.");
-        } catch (e) { toast.error("Güncelleme başarısız."); } finally { setSaving(false); }
+        } catch (e) { /* Global error handler */ } finally { setSaving(false); }
     }
 
     const handleDelete = async (id: string) => {
         if (!confirm('Silinecek. Emin misiniz?')) return;
-        try { await api.delete(`/users/${id}`); refetch(); toast.success("Silindi."); } catch (e) { toast.error("Hata."); }
+        try { await api.delete(`/users/${id}`); refetch(); toast.success("Silindi."); } catch (e) { /* Global error handler */ }
     };
 
     if (!currentUser) return null;

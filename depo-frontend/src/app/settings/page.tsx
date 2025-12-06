@@ -29,7 +29,7 @@ export default function SettingsPage() {
             setNewWarehouse('');
             refetch();
             toast.success("Depo eklendi."); // <--- Toast
-        } catch (e) { toast.error("Depo eklenemedi."); }
+        } catch (e) { /* Global error handler */ }
     };
 
     const addDept = async () => {
@@ -39,7 +39,7 @@ export default function SettingsPage() {
             setNewDept('');
             refetch();
             toast.success("Departman eklendi."); // <--- Toast
-        } catch (e) { toast.error("Departman eklenemedi."); }
+        } catch (e) { /* Global error handler */ }
     };
 
     return (

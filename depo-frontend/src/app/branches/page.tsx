@@ -72,16 +72,16 @@ export default function BranchesPage() {
             setIsCreateOpen(false);
             refetch();
             toast.success("Şube oluşturuldu.");
-        } catch (e: any) {
-            toast.error(e.response?.data?.message || "Hata oluştu.");
+        } catch (e) {
+            /* Global error handler */
         }
     };
 
     const handleDelete = async (e: any, id: string) => {
         e.stopPropagation();
         if (!confirm('Şubeyi silmek istediğinize emin misiniz?')) return;
-        try { await api.delete(`/branches/${id}`); refetch(); toast.success("Silindi."); }
-        catch (e) { toast.error("Silinemedi."); }
+        try { await api.delete(`/branches/${id}`); refetch(); toast.success("Şube silindi."); }
+        catch (e) { /* Global error handler */ }
     }
 
     const openDetail = (branch: any) => {

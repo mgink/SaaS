@@ -160,11 +160,11 @@ export default function ProductsPage() {
             else { await api.post('/products', data); toast.success('Kaydedildi.'); }
             setOpen(false); refetch();
         }
-        catch (e) { toast.error('Hata.'); } finally { setSaving(false); }
+        catch (e) { /* Global error handler will show toast */ } finally { setSaving(false); }
     };
 
     const handleRequestCreate = async () => {
-        try { await api.post('/requests', requestForm); setRequestOpen(false); toast.success("Talep gönderildi."); } catch (e) { toast.error("Hata."); }
+        try { await api.post('/requests', requestForm); setRequestOpen(false); toast.success("Talep gönderildi."); } catch (e) { /* Global error handler */ }
     }
 
     const canManage = ['ADMIN', 'SUPER_ADMIN'].includes(userRole);
@@ -186,12 +186,12 @@ export default function ProductsPage() {
                 else { setFormData(prev => ({ ...prev, departmentId: res.data.id })); }
             }
             setQuickOpen(false); setQuickName(''); toast.success("Eklendi.");
-        } catch (e) { toast.error("Hata."); }
+        } catch (e) { /* Global error handler */ }
     };
     const openQuickDialog = (type: any) => { setQuickType(type); setQuickOpen(true); };
 
-    const handleDelete = async (id: string) => { if (!confirm('Silinsin mi?')) return; try { await api.delete(`/products/${id}`); refetch(); toast.success("Silindi."); } catch (e) { toast.error('Hata.'); } };
-    const handleStatusUpdate = async (id: string, status: 'APPROVED' | 'REJECTED') => { let reason = ''; if (status === 'REJECTED') { const input = prompt("Neden?"); if (!input) return; reason = input; } try { await api.patch(`/products/${id}/status`, { status, reason }); refetch(); toast.success("Güncellendi."); } catch (e) { toast.error("Hata."); } };
+    const handleDelete = async (id: string) => { if (!confirm('Silinsin mi?')) return; try { await api.delete(`/products/${id}`); refetch(); toast.success("Silindi."); } catch (e) { /* Global error handler */ } };
+    const handleStatusUpdate = async (id: string, status: 'APPROVED' | 'REJECTED') => { let reason = ''; if (status === 'REJECTED') { const input = prompt("Neden?"); if (!input) return; reason = input; } try { await api.patch(`/products/${id}/status`, { status, reason }); refetch(); toast.success("Güncellendi."); } catch (e) { /* Global error handler */ } };
 
     return (
         <AppLayout>

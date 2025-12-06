@@ -71,7 +71,7 @@ export default function SuperAdminPage() {
         items.splice(result.destination.index, 0, reorderedItem);
         setPlans(items); // UI güncelle
         const orderPayload = items.map((plan, index) => ({ id: plan.id, order: index }));
-        try { await api.post('/super-admin/plans/reorder', orderPayload); toast.success("Sıralama güncellendi."); } catch (e) { toast.error("Sıralama hatası."); }
+        try { await api.post('/super-admin/plans/reorder', orderPayload); toast.success("Sıralama güncellendi."); } catch (e) { /* Global error handler */ }
     };
 
     const openPlanDialog = (plan: any = null) => {
@@ -121,12 +121,12 @@ export default function SuperAdminPage() {
             if (selectedPlan) { await api.patch(`/super-admin/plans/${selectedPlan.id}`, payload); toast.success("Paket güncellendi."); }
             else { await api.post('/super-admin/plans', payload); toast.success("Paket oluşturuldu."); }
             setIsPlanDialogOpen(false); refetch();
-        } catch (error: any) { toast.error("İşlem başarısız."); } finally { setSaving(false); }
+        } catch (error) { /* Global error handler */ } finally { setSaving(false); }
     };
 
     const handleDeletePlan = async (id: string) => {
         if (!confirm("Silmek istediğinize emin misiniz?")) return;
-        try { await api.delete(`/super-admin/plans/${id}`); toast.success("Paket silindi."); refetch(); } catch (e: any) { toast.error(e.response?.data?.message || "Silinemedi."); }
+        try { await api.delete(`/super-admin/plans/${id}`); toast.success("Paket silindi."); refetch(); } catch (e) { /* Global error handler */ }
     };
 
     // --- ŞİRKET İŞLEMLERİ (DETAYLI EDİT) ---
@@ -150,17 +150,17 @@ export default function SuperAdminPage() {
         try {
             await api.patch(`/super-admin/tenants/${selectedTenant.id}`, selectedTenant);
             setIsTenantSheetOpen(false); refetch(); toast.success("Şirket güncellendi.");
-        } catch (e) { toast.error("Hata."); } finally { setSaving(false); }
+        } catch (e) { /* Global error handler */ } finally { setSaving(false); }
     };
 
     const handleDeleteTenant = async (id: string) => {
         if (!confirm("DİKKAT: Şirketi silmek üzeresiniz!")) return;
-        try { await api.delete(`/super-admin/tenants/${id}`); refetch(); toast.info("Şirket silindi."); } catch (e) { toast.error("Hata."); }
+        try { await api.delete(`/super-admin/tenants/${id}`); refetch(); toast.info("Şirket silindi."); } catch (e) { /* Global error handler */ }
     }
 
     // --- TALEP İŞLEMLERİ ---
     const handleRequestStatus = async (id: string, status: string) => {
-        try { await api.patch(`/super-admin/requests/${id}`, { status }); refetch(); toast.success("Talep güncellendi."); } catch (e) { toast.error("Hata."); }
+        try { await api.patch(`/super-admin/requests/${id}`, { status }); refetch(); toast.success("Talep güncellendi."); } catch (e) { /* Global error handler */ }
     }
 
     if (loading || !stats) return <AppLayout><div className="flex h-[50vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div></AppLayout>;

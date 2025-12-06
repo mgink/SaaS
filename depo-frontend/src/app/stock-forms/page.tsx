@@ -90,8 +90,8 @@ export default function StockFormsPage() {
             // Formu sıfırla
             setFormData({ type: 'INBOUND', supplierId: '', waybillNo: '', waybillDate: '', notes: '', items: [] });
             refetch();
-        } catch (e: any) {
-            toast.error(e.response?.data?.message || "Hata oluştu.");
+        } catch (e) {
+            /* Global error handler */
         } finally {
             setSaving(false);
         }
@@ -257,8 +257,8 @@ export default function StockFormsPage() {
                                     </TableCell>
                                     <TableCell>
                                         <Badge className={`gap-1 px-2 font-normal ${form.type === 'INBOUND' ? 'bg-green-100 text-green-700 hover:bg-green-200 border-green-200' :
-                                                form.type === 'WASTAGE' ? 'bg-red-100 text-red-700 hover:bg-red-200 border-red-200' :
-                                                    'bg-blue-100 text-blue-700 hover:bg-blue-200 border-blue-200'
+                                            form.type === 'WASTAGE' ? 'bg-red-100 text-red-700 hover:bg-red-200 border-red-200' :
+                                                'bg-blue-100 text-blue-700 hover:bg-blue-200 border-blue-200'
                                             }`}>
                                             {form.type === 'INBOUND' ? <ArrowDownRight size={12} className="mr-1" /> : (form.type === 'WASTAGE' ? <AlertTriangle size={12} className="mr-1" /> : <ArrowUpRight size={12} className="mr-1" />)}
                                             {form.type === 'INBOUND' ? 'Giriş Fişi' : (form.type === 'WASTAGE' ? 'Zayi Fişi' : 'Çıkış Fişi')}

@@ -68,16 +68,15 @@ export default function SuppliersPage() {
             const res = await api.get(`/suppliers/${supplier.id}`);
             setSelectedSupplier(res.data);
         } catch (e) {
-            toast.error("Detaylar yüklenemedi.");
-            setDetailOpen(false);
+            setDetailOpen(false); // Global error handler will show message
         } finally {
             setDetailLoading(false);
         }
     };
 
     // ... (handleSubmit, handleDelete, openEdit aynı) ...
-    const handleSubmit = async (e: React.FormEvent) => { e.preventDefault(); try { if (isEdit) await api.patch(`/suppliers/${selectedId}`, formData); else await api.post('/suppliers', formData); setOpen(false); setFormData(initialForm); setIsEdit(false); refetch(); toast.success("Kaydedildi."); } catch (e) { toast.error("Hata."); } };
-    const handleDelete = async (id: string) => { if (!confirm("Silinsin mi?")) return; try { await api.delete(`/suppliers/${id}`); refetch(); toast.success("Silindi."); } catch (e: any) { toast.error("Hata."); } }
+    const handleSubmit = async (e: React.FormEvent) => { e.preventDefault(); try { if (isEdit) await api.patch(`/suppliers/${selectedId}`, formData); else await api.post('/suppliers', formData); setOpen(false); setFormData(initialForm); setIsEdit(false); refetch(); toast.success("Kaydedildi."); } catch (e) { /* Global error handler */ } };
+    const handleDelete = async (id: string) => { if (!confirm("Silinsin mi?")) return; try { await api.delete(`/suppliers/${id}`); refetch(); toast.success("Silindi."); } catch (e) { /* Global error handler */ } }
     const openEdit = (s: any) => { setFormData({ name: s.name, contactName: s.contactName || '', phone: s.phone || '', email: s.email || '', address: s.address || '', category: s.category || '' }); setSelectedId(s.id); setIsEdit(true); setOpen(true); }
 
 
