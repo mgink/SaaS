@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
+import { useMultipleDataFetch } from '@/hooks/useDataFetch';
 import AppLayout from '@/components/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -18,10 +19,15 @@ import { CustomLoader } from '@/components/ui/custom-loader';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function RequestsPage() {
-    const [requests, setRequests] = useState<any[]>([]);
-    const [products, setProducts] = useState<any[]>([]); // Ürün listesi için state
     const [userRole, setUserRole] = useState('VIEWER');
-    const [loading, setLoading] = useState(true);
+
+    const { data, loading, refetch } = useMultipleDataFetch([
+        { key: 'requests', url: '/requests' },
+        { key: 'products', url: '/products' }
+    ]);
+
+    const requests = data.requests || [];
+    const products = data.products || [];
 
     // Çoklu Seçim ve Görünüm State'leri
     const [selectedIds, setSelectedIds] = useState<string[]>([]);

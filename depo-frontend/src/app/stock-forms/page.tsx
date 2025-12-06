@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
+import { useMultipleDataFetch } from '@/hooks/useDataFetch';
 import AppLayout from '@/components/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,10 +17,15 @@ import { CustomLoader } from '@/components/ui/custom-loader';
 import EmptyState from '@/components/EmptyState';
 
 export default function StockFormsPage() {
-    const [forms, setForms] = useState<any[]>([]);
-    const [products, setProducts] = useState<any[]>([]);
-    const [suppliers, setSuppliers] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { data, loading, refetch } = useMultipleDataFetch([
+        { key: 'forms', url: '/stock-forms' },
+        { key: 'products', url: '/products' },
+        { key: 'suppliers', url: '/suppliers' }
+    ]);
+
+    const forms = data.forms || [];
+    const products = data.products || [];
+    const suppliers = data.suppliers || [];
     const [open, setOpen] = useState(false);
     const [saving, setSaving] = useState(false);
 

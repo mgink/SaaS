@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
+import { useMultipleDataFetch } from '@/hooks/useDataFetch';
 import AppLayout from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,10 +23,15 @@ import { CustomLoader } from '@/components/ui/custom-loader';
 import { Checkbox } from "@/components/ui/checkbox";
 
 export default function WarehousesPage() {
-    const [warehouses, setWarehouses] = useState<any[]>([]);
-    const [branches, setBranches] = useState<any[]>([]);
-    const [suppliers, setSuppliers] = useState<any[]>([]); // Tedarikçiler eklendi
-    const [loading, setLoading] = useState(true);
+    const { data, loading, refetch } = useMultipleDataFetch([
+        { key: 'warehouses', url: '/settings/warehouses' },
+        { key: 'branches', url: '/branches' },
+        { key: 'suppliers', url: '/suppliers' }
+    ]);
+
+    const warehouses = data.warehouses || [];
+    const branches = data.branches || [];
+    const suppliers = data.suppliers || [];
 
     // Modallar
     const [isCreateOpen, setIsCreateOpen] = useState(false);

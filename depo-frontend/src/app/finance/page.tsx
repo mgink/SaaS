@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
+import { useDataFetch } from '@/hooks/useDataFetch';
 import AppLayout from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -13,23 +14,13 @@ import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function FinancePage() {
-    const [data, setData] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
     const [expandedSuppliers, setExpandedSuppliers] = useState<string[]>([]);
 
-    const fetchData = async () => {
-        try {
-            const res = await api.get('/transactions/finance');
-            setData(res.data);
-        } catch (e) { toast.error("Veriler çekilemedi."); }
-        finally { setLoading(false); }
-    };
-
-    useEffect(() => { fetchData(); }, []);
+    const { data, loading, refetch } = useDataFetch('/transactions/finance');
 
     const handlePay = async (id: string) => {
         if (!confirm("Ödendi olarak işaretlensin mi?")) return;
-        try { await api.patch(`/transactions/${id}/pay`); toast.success("Kaydedildi."); fetchData(); }
+        try { await api.patch(`/transactions/${id}/pay`); toast.success("Kaydedildi."); refetch(); }
         catch (e) { toast.error("Hata."); }
     }
 

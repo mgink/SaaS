@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
+import { useMultipleDataFetch } from '@/hooks/useDataFetch';
 import AppLayout from '@/components/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,13 +27,17 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function TransactionsPage() {
     const router = useRouter();
-
-    // --- VERİ STATE ---
-    const [transactions, setTransactions] = useState<any[]>([]);
-    const [products, setProducts] = useState<any[]>([]);
-    const [suppliers, setSuppliers] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
     const [userRole, setUserRole] = useState('VIEWER');
+
+    const { data, loading, refetch } = useMultipleDataFetch([
+        { key: 'transactions', url: '/transactions' },
+        { key: 'products', url: '/products' },
+        { key: 'suppliers', url: '/suppliers' }
+    ]);
+
+    const transactions = data.transactions || [];
+    const products = data.products || [];
+    const suppliers = data.suppliers || [];
 
     // --- FİLTRE STATE ---
     const [dateRange, setDateRange] = useState(getQuickDateRange('THIS_MONTH'));

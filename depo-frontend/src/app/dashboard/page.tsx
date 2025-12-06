@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
+import { useMultipleDataFetch } from '@/hooks/useDataFetch';
 import AppLayout from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -22,11 +23,16 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export default function DashboardPage() {
     const router = useRouter();
-    const [stats, setStats] = useState<any>(null);
-    const [branches, setBranches] = useState<any[]>([]);
     const [selectedBranch, setSelectedBranch] = useState('ALL');
-    const [loading, setLoading] = useState(true);
     const [user, setUser] = useState<any>(null);
+
+    const { data, loading, refetch } = useMultipleDataFetch([
+        { key: 'stats', url: '/dashboard' },
+        { key: 'branches', url: '/branches' }
+    ]);
+
+    const stats = data.stats;
+    const branches = data.branches || [];
 
     const [isMounted, setIsMounted] = useState(false);
 

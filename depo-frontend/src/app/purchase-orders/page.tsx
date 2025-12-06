@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
+import { useMultipleDataFetch } from '@/hooks/useDataFetch';
 import AppLayout from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -16,10 +17,15 @@ import { toast } from 'sonner';
 import { CustomLoader } from '@/components/ui/custom-loader';
 
 export default function PurchaseOrdersPage() {
-    const [orders, setOrders] = useState<any[]>([]);
-    const [suppliers, setSuppliers] = useState<any[]>([]);
-    const [products, setProducts] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { data, loading, refetch } = useMultipleDataFetch([
+        { key: 'orders', url: '/purchase-orders' },
+        { key: 'suppliers', url: '/suppliers' },
+        { key: 'products', url: '/products' }
+    ]);
+
+    const orders = data.orders || [];
+    const suppliers = data.suppliers || [];
+    const products = (data.products || []).filter((p: any) => p.status === 'APPROVED');
 
     // Yeni Sipariş State
     const [isCreateOpen, setIsCreateOpen] = useState(false);
