@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useMultipleDataFetch } from '@/hooks/useDataFetch';
+import { usePermissions } from '@/hooks/usePermissions';
 import AppLayout from '@/components/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,7 +23,7 @@ import { CustomLoader } from '@/components/ui/custom-loader';
 export default function ProductsPage() {
     const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
     const [search, setSearch] = useState('');
-    const [userRole, setUserRole] = useState<string>('VIEWER');
+    const permissions = usePermissions();
 
     // Fetch all data using custom hook
     const { data, loading, refetch } = useMultipleDataFetch([
@@ -66,11 +67,6 @@ export default function ProductsPage() {
 
     const [requestForm, setRequestForm] = useState({ productId: '', quantity: 10, reason: '' });
     const [requestOpen, setRequestOpen] = useState(false);
-
-    useEffect(() => {
-        const localUser = localStorage.getItem('user');
-        if (localUser) setUserRole(JSON.parse(localUser).role || 'VIEWER');
-    }, []);
 
     useEffect(() => {
         let result = products.filter((p: any) => p.name.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase()) || (p.barcode && p.barcode.includes(search)));
@@ -167,8 +163,7 @@ export default function ProductsPage() {
         try { await api.post('/requests', requestForm); setRequestOpen(false); toast.success("Talep gönderildi."); } catch (e) { /* Global error handler */ }
     }
 
-    const canManage = ['ADMIN', 'SUPER_ADMIN'].includes(userRole);
-    const canCreate = ['ADMIN', 'STAFF', 'SUPER_ADMIN'].includes(userRole);
+    const { canEditProduct: canManage, canCreateProduct: canCreate } = permissions;
 
     const onBarcodeScanned = (code: string) => { setIsScannerOpen(false); const p = products.find((x: any) => x.barcode === code); if (p) toast.info(`Kayıtlı: ${p.name}`); else if (confirm('Bulunamadı. Ekleyelim mi?')) { openCreate(); setFormData(prev => ({ ...prev, barcode: code })); } };
 

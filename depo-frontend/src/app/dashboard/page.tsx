@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { useMultipleDataFetch } from '@/hooks/useDataFetch';
+import { usePermissions } from '@/hooks/usePermissions';
 import AppLayout from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -25,6 +26,7 @@ export default function DashboardPage() {
     const router = useRouter();
     const [selectedBranch, setSelectedBranch] = useState('ALL');
     const [user, setUser] = useState<any>(null);
+    const permissions = usePermissions();
 
     const { data, loading, refetch } = useMultipleDataFetch([
         { key: 'stats', url: '/dashboard' },
@@ -337,7 +339,7 @@ export default function DashboardPage() {
                         <RotateCcw className="mr-2 h-3.5 w-3.5" /> Yenile
                     </Button>
 
-                    {(user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') && (
+                    {permissions.canManageAll && (
                         <div className="flex items-center gap-2 bg-white/40 backdrop-blur-xl p-1.5 rounded-2xl border border-white/50 shadow-sm z-20">
                             <Building2 size={18} className="text-slate-400 ml-2" />
                             <Select value={selectedBranch} onValueChange={setSelectedBranch}>

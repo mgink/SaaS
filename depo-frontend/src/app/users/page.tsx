@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useMultipleDataFetch } from '@/hooks/useDataFetch';
+import { usePermissions } from '@/hooks/usePermissions';
 import AppLayout from '@/components/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +22,7 @@ import { toast } from 'sonner';
 export default function UsersPage() {
     const router = useRouter();
     const [currentUser, setCurrentUser] = useState<any>(null);
+    const permissions = usePermissions();
 
     // Fetch all data using custom hook
     const { data, loading, refetch } = useMultipleDataFetch([
@@ -107,8 +109,8 @@ export default function UsersPage() {
     };
 
     if (!currentUser) return null;
-    const isBranchManager = currentUser.role === 'BRANCH_MANAGER';
-    const isAdmin = currentUser.role === 'ADMIN' || currentUser.role === 'SUPER_ADMIN';
+    const isBranchManager = permissions.isBranchManager;
+    const isAdmin = permissions.canManageAll;
 
     const UsersTable = ({ data }: { data: any[] }) => (
         <Table>

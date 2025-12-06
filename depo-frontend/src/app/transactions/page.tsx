@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { useMultipleDataFetch } from '@/hooks/useDataFetch';
+import { usePermissions } from '@/hooks/usePermissions';
 import AppLayout from '@/components/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,7 +28,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function TransactionsPage() {
     const router = useRouter();
-    const [userRole, setUserRole] = useState('VIEWER');
+    const permissions = usePermissions();
 
     const { data, loading, refetch } = useMultipleDataFetch([
         { key: 'transactions', url: '/transactions' },
@@ -67,11 +68,6 @@ export default function TransactionsPage() {
         stock: 0,
         sku: ''
     });
-
-    useEffect(() => {
-        const localUser = localStorage.getItem('user');
-        if (localUser) setUserRole(JSON.parse(localUser).role || 'VIEWER');
-    }, []);
 
     // Refetch when date range changes
     useEffect(() => {
@@ -166,7 +162,7 @@ export default function TransactionsPage() {
     };
 
     // Yetki Kontrolü
-    const canManage = ['ADMIN', 'SUPER_ADMIN', 'BRANCH_MANAGER'].includes(userRole);
+    const canManage = permissions.canManageBranch;
 
     return (
         <AppLayout>
