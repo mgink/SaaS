@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
+import { useMultipleDataFetch } from '@/hooks/useDataFetch';
 import AppLayout from '@/components/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -18,10 +19,16 @@ import { Loader2 } from 'lucide-react';
 import { Switch } from "@/components/ui/switch";
 
 export default function SuppliersPage() {
-    const [suppliers, setSuppliers] = useState<any[]>([]);
-    const [financeData, setFinanceData] = useState<any>({ unpaidTransactions: [] });
-    const [loading, setLoading] = useState(true);
     const [filterOverdue, setFilterOverdue] = useState(false);
+
+    // Fetch suppliers and finance data using custom hook
+    const { data, loading, refetch } = useMultipleDataFetch([
+        { key: 'suppliers', url: '/suppliers' },
+        { key: 'finance', url: '/transactions/finance' }
+    ]);
+
+    const suppliers = data.suppliers || [];
+    const financeData = data.finance || { unpaidTransactions: [] };
 
     // ... (Ekleme/Düzenleme State'leri aynı)
     const [open, setOpen] = useState(false);
@@ -34,19 +41,6 @@ export default function SuppliersPage() {
     const [detailOpen, setDetailOpen] = useState(false);
     const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
     const [detailLoading, setDetailLoading] = useState(false);
-
-    const fetchData = async () => {
-        try {
-            const [supRes, finRes] = await Promise.all([
-                api.get('/suppliers'),
-                api.get('/transactions/finance')
-            ]);
-            setSuppliers(supRes.data);
-            setFinanceData(finRes.data || { unpaidTransactions: [] });
-        } catch (e) { toast.error("Veriler yüklenemedi."); } finally { setLoading(false); }
-    };
-
-    useEffect(() => { fetchData(); }, []);
 
     // Tedarikçinin borç durumunu hesapla
     const getSupplierDebtStatus = (supplierId: string) => {
@@ -82,8 +76,8 @@ export default function SuppliersPage() {
     };
 
     // ... (handleSubmit, handleDelete, openEdit aynı) ...
-    const handleSubmit = async (e: React.FormEvent) => { e.preventDefault(); try { if (isEdit) await api.patch(`/suppliers/${selectedId}`, formData); else await api.post('/suppliers', formData); setOpen(false); setFormData(initialForm); setIsEdit(false); fetchData(); toast.success("Kaydedildi."); } catch (e) { toast.error("Hata."); } };
-    const handleDelete = async (id: string) => { if (!confirm("Silinsin mi?")) return; try { await api.delete(`/suppliers/${id}`); fetchData(); toast.success("Silindi."); } catch (e: any) { toast.error("Hata."); } }
+    const handleSubmit = async (e: React.FormEvent) => { e.preventDefault(); try { if (isEdit) await api.patch(`/suppliers/${selectedId}`, formData); else await api.post('/suppliers', formData); setOpen(false); setFormData(initialForm); setIsEdit(false); refetch(); toast.success("Kaydedildi."); } catch (e) { toast.error("Hata."); } };
+    const handleDelete = async (id: string) => { if (!confirm("Silinsin mi?")) return; try { await api.delete(`/suppliers/${id}`); refetch(); toast.success("Silindi."); } catch (e: any) { toast.error("Hata."); } }
     const openEdit = (s: any) => { setFormData({ name: s.name, contactName: s.contactName || '', phone: s.phone || '', email: s.email || '', address: s.address || '', category: s.category || '' }); setSelectedId(s.id); setIsEdit(true); setOpen(true); }
 
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
+import { useMultipleDataFetch } from '@/hooks/useDataFetch';
 import AppLayout from '@/components/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,15 +20,22 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { CustomLoader } from '@/components/ui/custom-loader';
 
 export default function ProductsPage() {
-    const [products, setProducts] = useState<any[]>([]);
     const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [userRole, setUserRole] = useState<string>('VIEWER');
 
-    const [warehouses, setWarehouses] = useState<any[]>([]);
-    const [departments, setDepartments] = useState<any[]>([]);
-    const [allSuppliers, setAllSuppliers] = useState<any[]>([]);
+    // Fetch all data using custom hook
+    const { data, loading, refetch } = useMultipleDataFetch([
+        { key: 'products', url: '/products' },
+        { key: 'warehouses', url: '/settings/warehouses' },
+        { key: 'departments', url: '/settings/departments' },
+        { key: 'suppliers', url: '/suppliers' }
+    ]);
+
+    const products = data.products || [];
+    const warehouses = data.warehouses || [];
+    const departments = data.departments || [];
+    const allSuppliers = data.suppliers || [];
 
     const [showCritical, setShowCritical] = useState(false);
     const [selectedWarehouse, setSelectedWarehouse] = useState('ALL');
@@ -59,18 +67,10 @@ export default function ProductsPage() {
     const [requestForm, setRequestForm] = useState({ productId: '', quantity: 10, reason: '' });
     const [requestOpen, setRequestOpen] = useState(false);
 
-    const fetchData = async () => {
-        try {
-            const localUser = localStorage.getItem('user');
-            if (localUser) setUserRole(JSON.parse(localUser).role || 'VIEWER');
-            const [prodRes, wRes, dRes, sRes] = await Promise.all([
-                api.get('/products'), api.get('/settings/warehouses'), api.get('/settings/departments'), api.get('/suppliers')
-            ]);
-            setProducts(prodRes.data); setWarehouses(wRes.data); setDepartments(dRes.data); setAllSuppliers(sRes.data);
-        } catch (error) { console.error(error); } finally { setLoading(false); }
-    };
-
-    useEffect(() => { fetchData(); }, []);
+    useEffect(() => {
+        const localUser = localStorage.getItem('user');
+        if (localUser) setUserRole(JSON.parse(localUser).role || 'VIEWER');
+    }, []);
 
     useEffect(() => {
         let result = products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase()) || (p.barcode && p.barcode.includes(search)));

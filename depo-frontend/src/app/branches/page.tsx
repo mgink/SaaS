@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
+import { useMultipleDataFetch } from '@/hooks/useDataFetch';
 import AppLayout from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,11 +18,16 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import EmptyState from '@/components/EmptyState';
 
 export default function BranchesPage() {
-    const [branches, setBranches] = useState<any[]>([]);
-    const [users, setUsers] = useState<any[]>([]); // Tüm personelleri çekiyoruz
-    const [warehouses, setWarehouses] = useState<any[]>([]); // Tüm depoları çekiyoruz
+    // Fetch all data using custom hook
+    const { data, loading, refetch } = useMultipleDataFetch([
+        { key: 'branches', url: '/branches' },
+        { key: 'users', url: '/users' },
+        { key: 'warehouses', url: '/settings/warehouses' }
+    ]);
 
-    const [loading, setLoading] = useState(true);
+    const branches = data.branches || [];
+    const users = data.users || [];
+    const warehouses = data.warehouses || [];
     const [isCreateOpen, setIsCreateOpen] = useState(false);
 
     // Detay Modal State
@@ -35,24 +41,7 @@ export default function BranchesPage() {
         managerName: '', managerEmail: '', managerPhone: '', managerPassword: ''
     });
 
-    const fetchData = async () => {
-        try {
-            const [branchRes, userRes, whRes] = await Promise.all([
-                api.get('/branches'),
-                api.get('/users'),
-                api.get('/settings/warehouses')
-            ]);
-            setBranches(branchRes.data);
-            setUsers(userRes.data);
-            setWarehouses(whRes.data);
-        } catch (e) {
-            toast.error("Veriler yüklenemedi.");
-        } finally {
-            setLoading(false);
-        }
-    };
 
-    useEffect(() => { fetchData(); }, []);
 
     // --- YARDIMCI FONKSİYONLAR ---
     const getBranchManager = (branchId: string) => {
@@ -81,7 +70,7 @@ export default function BranchesPage() {
             await api.post('/branches', payload);
             setFormData({ name: '', location: '', phone: '', addManager: false, managerName: '', managerEmail: '', managerPhone: '', managerPassword: '' });
             setIsCreateOpen(false);
-            fetchData();
+            refetch();
             toast.success("Şube oluşturuldu.");
         } catch (e: any) {
             toast.error(e.response?.data?.message || "Hata oluştu.");
@@ -91,7 +80,7 @@ export default function BranchesPage() {
     const handleDelete = async (e: any, id: string) => {
         e.stopPropagation();
         if (!confirm('Şubeyi silmek istediğinize emin misiniz?')) return;
-        try { await api.delete(`/branches/${id}`); fetchData(); toast.success("Silindi."); }
+        try { await api.delete(`/branches/${id}`); refetch(); toast.success("Silindi."); }
         catch (e) { toast.error("Silinemedi."); }
     }
 

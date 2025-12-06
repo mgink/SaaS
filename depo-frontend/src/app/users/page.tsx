@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
+import { useMultipleDataFetch } from '@/hooks/useDataFetch';
 import AppLayout from '@/components/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,10 +20,16 @@ import { toast } from 'sonner';
 
 export default function UsersPage() {
     const router = useRouter();
-    const [users, setUsers] = useState<any[]>([]);
-    const [branches, setBranches] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState<any>(null);
+
+    // Fetch all data using custom hook
+    const { data, loading, refetch } = useMultipleDataFetch([
+        { key: 'users', url: '/users' },
+        { key: 'branches', url: '/branches' }
+    ]);
+
+    const users = data.users || [];
+    const branches = data.branches || [];
 
     // Formlar
     const [newUser, setNewUser] = useState({
@@ -49,19 +56,7 @@ export default function UsersPage() {
                 router.push('/dashboard'); return;
             }
         }
-        fetchData();
     }, [router]);
-
-    const fetchData = async () => {
-        try {
-            const [usersRes, branchesRes] = await Promise.all([
-                api.get('/users'),
-                api.get('/branches')
-            ]);
-            setUsers(usersRes.data);
-            setBranches(branchesRes.data);
-        } catch (err) { toast.error("Veri hatası."); } finally { setLoading(false); }
-    };
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -76,7 +71,7 @@ export default function UsersPage() {
         try {
             await api.post('/users', payload);
             setNewUser({ fullName: '', email: '', phone: '', password: '', role: 'STAFF', branchId: currentUser.role === 'BRANCH_MANAGER' ? currentUser.branchId : '', canCreateProduct: false, autoApprove: false, tags: '' });
-            fetchData();
+            refetch();
             toast.success("Personel eklendi.");
         } catch (error: any) { toast.error(error.response?.data?.message || 'Hata oluştu'); }
     };
@@ -102,13 +97,13 @@ export default function UsersPage() {
         const tagsArray = editUser.tags.split(',').map((t: any) => t.trim()).filter((t: any) => t !== '');
         try {
             await api.patch(`/users/${editUser.id}`, { ...editUser, tags: tagsArray });
-            setIsEditOpen(false); fetchData(); toast.success("Güncellendi.");
+            setIsEditOpen(false); refetch(); toast.success("Güncellendi.");
         } catch (e) { toast.error("Güncelleme başarısız."); } finally { setSaving(false); }
     }
 
     const handleDelete = async (id: string) => {
         if (!confirm('Silinecek. Emin misiniz?')) return;
-        try { await api.delete(`/users/${id}`); setUsers(users.filter(u => u.id !== id)); toast.success("Silindi."); } catch (e) { toast.error("Hata."); }
+        try { await api.delete(`/users/${id}`); refetch(); toast.success("Silindi."); } catch (e) { toast.error("Hata."); }
     };
 
     if (!currentUser) return null;
